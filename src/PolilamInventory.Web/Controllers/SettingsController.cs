@@ -72,10 +72,16 @@ public class SettingsController : Controller
     public async Task<IActionResult> AddPattern(string name, int reorderTrigger)
     {
         if (string.IsNullOrWhiteSpace(name))
-            return BadRequest("Pattern name is required.");
+        {
+            TempData["Error"] = "Pattern name is required.";
+            return RedirectToAction(nameof(Index));
+        }
 
-        if (await _db.Patterns.AnyAsync(p => p.Name == name))
-            return BadRequest($"Pattern '{name}' already exists.");
+        if (await _db.Patterns.AnyAsync(p => p.Name == name.Trim()))
+        {
+            TempData["Error"] = $"Pattern '{name}' already exists.";
+            return RedirectToAction(nameof(Index));
+        }
 
         _db.Patterns.Add(new Pattern { Name = name.Trim(), ReorderTrigger = reorderTrigger > 0 ? reorderTrigger : 5 });
         await _db.SaveChangesAsync();
@@ -89,7 +95,16 @@ public class SettingsController : Controller
         if (pattern == null) return NotFound();
 
         if (string.IsNullOrWhiteSpace(name))
-            return BadRequest("Pattern name is required.");
+        {
+            TempData["Error"] = "Pattern name is required.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (await _db.Patterns.AnyAsync(p => p.Name == name.Trim() && p.Id != id))
+        {
+            TempData["Error"] = $"Pattern '{name}' already exists.";
+            return RedirectToAction(nameof(Index));
+        }
 
         pattern.Name = name.Trim();
         pattern.ReorderTrigger = reorderTrigger > 0 ? reorderTrigger : 5;
@@ -110,7 +125,10 @@ public class SettingsController : Controller
             await _db.InventoryAdjustments.AnyAsync(a => a.PatternId == id);
 
         if (hasTransactions)
-            return BadRequest("Cannot delete a pattern that has transactions.");
+        {
+            TempData["Error"] = "Cannot delete a pattern that has transactions.";
+            return RedirectToAction(nameof(Index));
+        }
 
         _db.Patterns.Remove(pattern);
         await _db.SaveChangesAsync();
@@ -121,10 +139,16 @@ public class SettingsController : Controller
     public async Task<IActionResult> AddDimensionValue(string type, decimal value)
     {
         if (!new[] { "Width", "Length", "Thickness" }.Contains(type))
-            return BadRequest("Invalid dimension type.");
+        {
+            TempData["Error"] = "Invalid dimension type.";
+            return RedirectToAction(nameof(Index));
+        }
 
         if (await _db.DimensionValues.AnyAsync(d => d.Type == type && d.Value == value))
-            return BadRequest($"{type} {value} already exists.");
+        {
+            TempData["Error"] = $"{type} {value} already exists.";
+            return RedirectToAction(nameof(Index));
+        }
 
         _db.DimensionValues.Add(new DimensionValue { Type = type, Value = value });
         await _db.SaveChangesAsync();
@@ -147,7 +171,10 @@ public class SettingsController : Controller
         };
 
         if (isUsed)
-            return BadRequest($"Cannot delete {dv.Type} {dv.Value} — it is used in existing inventory records.");
+        {
+            TempData["Error"] = $"Cannot delete {dv.Type} {dv.Value} — it is used in existing inventory records.";
+            return RedirectToAction(nameof(Index));
+        }
 
         _db.DimensionValues.Remove(dv);
         await _db.SaveChangesAsync();

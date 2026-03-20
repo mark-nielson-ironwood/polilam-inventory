@@ -37,8 +37,12 @@
                             <button type="submit" class="btn btn-sm btn-submit-green">Save</button>
                             @if (!p.HasTransactions)
                             {
-                                <button type="button" class="btn btn-sm btn-outline-danger"
-                                    onclick="if(confirm('Delete pattern @p.Name?')) { document.getElementById('delete-pattern-@p.Id').submit(); }">Delete</button>
+                                <form asp-action="DeletePattern" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@p.Id" />
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-pattern-name="@p.Name"
+                                            onclick="if(confirm('Delete pattern ' + this.dataset.patternName + '?')) { this.closest('form').submit(); }">Delete</button>
+                                </form>
                             }
                             else
                             {
@@ -47,12 +51,6 @@
                         </td>
                     </form>
                 </tr>
-                @if (!p.HasTransactions)
-                {
-                    <form id="delete-pattern-@p.Id" asp-action="DeletePattern" method="post" style="display:none">
-                        <input type="hidden" name="id" value="@p.Id" />
-                    </form>
-                }
             }
         </tbody>
     </table>
