@@ -1,0 +1,202 @@
+@model PolilamInventory.Web.ViewModels.ReceiveShipmentViewModel
+@{
+    ViewData["Title"] = "Receive Shipment";
+}
+
+<h2 class="mb-4">Receive Shipment</h2>
+
+<div class="row">
+    <!-- Left: Receipt form -->
+    <div class="col-md-6">
+        <div class="card bg-card p-4">
+            <form asp-action="Create" method="post">
+                <asp-validation-summary class="text-danger small mb-3" asp-validation-summary="ModelOnly" />
+
+                <input type="hidden" name="OrderId" id="orderIdInput" value="0" />
+
+                <div class="mb-3">
+                    <label class="form-label">Select Open Order</label>
+                    <select id="orderSelect" class="form-select">
+                        <option value="">— Select Open Order —</option>
+                        @foreach (var o in Model.OpenOrders)
+                        {
+                            <option value="@o.Id"
+                                    data-po="@o.PoNumber"
+                                    data-outstanding="@o.QuantityOutstanding">
+                                PO@o.PoNumber — @o.Pattern.Name @o.Size.DisplayName (@o.QuantityOutstanding outstanding)
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Order details panel (hidden until order selected) -->
+                <div id="orderDetailsPanel" class="mb-3" style="display:none;">
+                    <div class="card bg-card border border-secondary p-3">
+                        <h6 class="mb-2 text-muted">Order Details</h6>
+                        <div class="row g-2 small">
+                            <div class="col-6">
+                                <span class="text-muted">Pattern:</span>
+                                <span id="detailPattern" class="ms-1"></span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted">Size:</span>
+                                <span id="detailSize" class="ms-1"></span>
+                            </div>
+                            <div class="col-4">
+                                <span class="text-muted">Ordered:</span>
+                                <span id="detailOrdered" class="ms-1"></span>
+                            </div>
+                            <div class="col-4">
+                                <span class="text-muted">Received:</span>
+                                <span id="detailReceived" class="ms-1"></span>
+                            </div>
+                            <div class="col-4">
+                                <span class="text-muted">Outstanding:</span>
+                                <span id="detailOutstanding" class="ms-1 text-warning-amber fw-bold"></span>
+                            </div>
+                            <div class="col-12">
+                                <span class="text-muted">ETA:</span>
+                                <span id="detailEta" class="ms-1"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Quantity Received</label>
+                    <input type="number" name="QuantityReceived" id="qtyInput" class="form-control" min="1"
+                           value="@(Model.QuantityReceived > 0 ? Model.QuantityReceived : 1)" required />
+                    <span asp-validation-for="QuantityReceived" class="text-danger small"></span>
+                </div>
+
+                <!-- Preview message -->
+                <div id="previewMessage" class="mb-3 small" style="display:none;"></div>
+
+                <div class="mb-3">
+                    <label class="form-label">Date Received</label>
+                    <input type="date" name="DateReceived" class="form-control"
+                           value="@Model.DateReceived.ToString("yyyy-MM-dd")" required />
+                    <span asp-validation-for="DateReceived" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Note <span class="text-muted">(optional)</span></label>
+                    <textarea name="Note" class="form-control" rows="2" maxlength="500">@Model.Note</textarea>
+                    <span asp-validation-for="Note" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Record Receipt</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right: Receipt history panel -->
+    <div class="col-md-6">
+        <div class="card bg-card p-4" id="historyPanel">
+            <p class="text-muted">Select an order to see receipt history.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const orderSelect = document.getElementById('orderSelect');
+    const orderIdInput = document.getElementById('orderIdInput');
+    const orderDetailsPanel = document.getElementById('orderDetailsPanel');
+    const historyPanel = document.getElementById('historyPanel');
+    const qtyInput = document.getElementById('qtyInput');
+    const previewMessage = document.getElementById('previewMessage');
+
+    let currentOutstanding = null;
+    let currentPoNumber = null;
+
+    function updatePreview() {
+        if (currentOutstanding === null || currentPoNumber === null) {
+            previewMessage.style.display = 'none';
+            return;
+        }
+        const qty = parseInt(qtyInput.value, 10);
+        if (!qty || qty <= 0) {
+            previewMessage.style.display = 'none';
+            return;
+        }
+        previewMessage.style.display = 'block';
+        if (qty >= currentOutstanding) {
+            previewMessage.textContent = `This will complete PO ${currentPoNumber}.`;
+            previewMessage.className = 'mb-3 small text-healthy';
+        } else {
+            const remaining = currentOutstanding - qty;
+            previewMessage.textContent = `${remaining} remaining after this receipt.`;
+            previewMessage.className = 'mb-3 small text-warning-amber';
+        }
+    }
+
+    function populateDetails(data) {
+        document.getElementById('detailPattern').textContent = data.patternName;
+        document.getElementById('detailSize').textContent = data.sizeDisplay;
+        document.getElementById('detailOrdered').textContent = data.quantityOrdered;
+        document.getElementById('detailReceived').textContent = data.quantityReceived;
+        document.getElementById('detailOutstanding').textContent = data.quantityOutstanding;
+        document.getElementById('detailEta').textContent = data.eta;
+        orderDetailsPanel.style.display = 'block';
+    }
+
+    function populateHistory(data, poNumber) {
+        let html = `<h6 class="mb-3">Receipt History for PO ${poNumber}</h6>`;
+        if (!data.receipts || data.receipts.length === 0) {
+            html += '<p class="text-muted small">No previous receipts for this order.</p>';
+        } else {
+            html += '<table class="table table-dark table-sm">';
+            html += '<thead><tr><th>Date</th><th>Qty</th><th>Note</th></tr></thead>';
+            html += '<tbody>';
+            data.receipts.forEach(function (r) {
+                html += `<tr><td>${r.date}</td><td>${r.qty}</td><td>${r.note || '<span class="text-muted">—</span>'}</td></tr>`;
+            });
+            html += '</tbody></table>';
+        }
+        historyPanel.innerHTML = html;
+    }
+
+    orderSelect.addEventListener('change', function () {
+        const orderId = this.value;
+        const selectedOption = this.options[this.selectedIndex];
+
+        if (!orderId) {
+            orderIdInput.value = '0';
+            currentOutstanding = null;
+            currentPoNumber = null;
+            orderDetailsPanel.style.display = 'none';
+            previewMessage.style.display = 'none';
+            historyPanel.innerHTML = '<p class="text-muted">Select an order to see receipt history.</p>';
+            return;
+        }
+
+        currentPoNumber = selectedOption.dataset.po;
+        orderIdInput.value = orderId;
+
+        // Show loading states
+        orderDetailsPanel.style.display = 'none';
+        historyPanel.innerHTML = '<p class="text-muted">Loading...</p>';
+        previewMessage.style.display = 'none';
+
+        fetch('/Receipts/GetOrderDetails?orderId=' + orderId)
+            .then(function (r) {
+                if (!r.ok) throw new Error('API error');
+                return r.json();
+            })
+            .then(function (data) {
+                currentOutstanding = data.quantityOutstanding;
+                populateDetails(data);
+                populateHistory(data, currentPoNumber);
+                updatePreview();
+            })
+            .catch(function () {
+                historyPanel.innerHTML = '<p class="text-danger small">Failed to load order details.</p>';
+            });
+    });
+
+    qtyInput.addEventListener('input', updatePreview);
+})();
+</script>
+}
