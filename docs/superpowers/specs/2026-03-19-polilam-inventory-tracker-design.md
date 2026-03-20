@@ -97,7 +97,7 @@ Initial stock entries and manual corrections.
 | Id             | int      | Primary key                              |
 | PatternId      | int      | FK → Patterns                            |
 | SizeId         | int      | FK → Sizes                               |
-| QuantityAdded  | int      | Sheets added                             |
+| Quantity       | int      | Sheets added (positive) or removed (negative for corrections, e.g., damaged sheets) |
 | DateAdded      | date     | Date of adjustment                       |
 | Note           | string?  | Optional                                 |
 
@@ -141,8 +141,8 @@ Inventory is never stored as a persisted number. It is always computed:
 
 ```
 Current Inventory (for a Pattern+Size) =
-    SUM(InventoryAdjustments.QuantityAdded)
-  + SUM(Receipts.QuantityReceived)      -- via Orders matching this Pattern+Size
+    SUM(InventoryAdjustments.Quantity)   -- positive for additions, negative for corrections
+  + SUM(Receipts.QuantityReceived)       -- via Orders matching this Pattern+Size
   - SUM(ActualPulls.Quantity)
 ```
 
@@ -304,7 +304,7 @@ This report is submitted to Polilam for billing purposes.
 
 ### Transaction Report
 
-**Filters:** Pattern dropdown (default: All Patterns).
+**Filters:** Pattern dropdown (default: All Patterns). Optional date range (Start Date, End Date) to limit the report to a specific time period.
 
 **Export:** CSV and PDF buttons.
 
@@ -329,8 +329,9 @@ Shows a unified chronological timeline of all transaction types. Entries are sor
 - Cannot delete a pattern that has existing transactions
 
 **Manage Sizes:**
-- Separate lists for Widths, Lengths, and Thicknesses
-- Add and remove values
+- Separate lists for Widths, Lengths, and Thicknesses — these are individual dimension values, not pre-created W×L×T tuples
+- When users select dimensions in forms (Place Order, Pull Sheets, etc.), dropdowns show all available values for each dimension independently; the Size record (W+L+T combination) is created on-the-fly if it doesn't exist
+- Add and remove dimension values
 - Cannot remove a value that is referenced by existing transactions
 - Material type label shown next to thickness values
 
