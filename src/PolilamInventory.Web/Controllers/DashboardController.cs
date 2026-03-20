@@ -54,11 +54,11 @@ public class DashboardController : Controller
         var allSizes = await _db.Sizes.ToListAsync();
         var sizeById = allSizes.ToDictionary(s => s.Id);
 
-        // Load open orders for OnOrder calculation
-        var openOrders = await _db.Orders
+        // Load open orders for OnOrder calculation (IsFilled is computed in C#, filter in memory)
+        var allOrders = await _db.Orders
             .Include(o => o.Receipts)
-            .Where(o => !o.IsFilled)
             .ToListAsync();
+        var openOrders = allOrders.Where(o => !o.IsFilled).ToList();
 
         // Load all planned claims for upcoming section
         var allPlannedClaims = await _db.PlannedClaims
