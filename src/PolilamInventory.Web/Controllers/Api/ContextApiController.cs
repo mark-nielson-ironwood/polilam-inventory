@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PolilamInventory.Web.Data;
-using PolilamInventory.Web.Services;
 
 namespace PolilamInventory.Web.Controllers.Api;
 
@@ -10,12 +9,10 @@ namespace PolilamInventory.Web.Controllers.Api;
 public class ContextApiController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly InventoryService _inventoryService;
 
-    public ContextApiController(AppDbContext db, InventoryService inventoryService)
+    public ContextApiController(AppDbContext db)
     {
         _db = db;
-        _inventoryService = inventoryService;
     }
 
     [HttpGet("pattern/{patternId:int}")]
@@ -34,16 +31,32 @@ public class ContextApiController : ControllerBase
             .OrderBy(s => s.Thickness)
             .ToListAsync();
 
-        var inventoryRows = new List<object>();
-        foreach (var size in sizes)
+        // Batch: sum adjustments, receipts, pulls per size in one query each
+        var adjustmentsBySize = await _db.InventoryAdjustments
+            .Where(a => a.PatternId == patternId && sizeIds.Contains(a.SizeId))
+            .GroupBy(a => a.SizeId)
+            .Select(g => new { SizeId = g.Key, Total = g.Sum(a => a.Quantity) })
+            .ToListAsync();
+
+        var receiptsBySize = await _db.Receipts
+            .Where(r => r.Order.PatternId == patternId && sizeIds.Contains(r.Order.SizeId))
+            .GroupBy(r => r.Order.SizeId)
+            .Select(g => new { SizeId = g.Key, Total = g.Sum(r => r.QuantityReceived) })
+            .ToListAsync();
+
+        var pullsBySize = await _db.ActualPulls
+            .Where(p => p.PatternId == patternId && sizeIds.Contains(p.SizeId))
+            .GroupBy(p => p.SizeId)
+            .Select(g => new { SizeId = g.Key, Total = g.Sum(p => p.Quantity) })
+            .ToListAsync();
+
+        var inventoryRows = sizes.Select(size =>
         {
-            var qty = await _inventoryService.GetCurrentInventory(patternId, size.Id);
-            inventoryRows.Add(new
-            {
-                sizeDisplay = size.DisplayName,
-                inStock = qty
-            });
-        }
+            var adj = adjustmentsBySize.FirstOrDefault(a => a.SizeId == size.Id)?.Total ?? 0;
+            var rec = receiptsBySize.FirstOrDefault(r => r.SizeId == size.Id)?.Total ?? 0;
+            var pul = pullsBySize.FirstOrDefault(p => p.SizeId == size.Id)?.Total ?? 0;
+            return new { sizeDisplay = size.DisplayName, inStock = adj + rec - pul };
+        }).ToList<object>();
 
         // Open orders for this pattern
         var openOrders = await _db.Orders

@@ -106,7 +106,10 @@ document.getElementById('patternSelect').addEventListener('change', function() {
     }
     panel.innerHTML = '<p class="text-muted">Loading...</p>';
     fetch('/api/context/pattern/' + patternId)
-        .then(r => r.json())
+        .then(r => {
+            if (!r.ok) throw new Error('API error');
+            return r.json();
+        })
         .then(data => {
             let html = '';
 

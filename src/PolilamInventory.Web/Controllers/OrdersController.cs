@@ -18,6 +18,7 @@ public class OrdersController : Controller
         _sizeService = sizeService;
     }
 
+    [HttpGet]
     public async Task<IActionResult> Create()
     {
         var vm = await BuildViewModel();
@@ -26,29 +27,29 @@ public class OrdersController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(
-        int patternId,
-        decimal width, decimal length, decimal thickness,
-        int quantityOrdered,
-        DateTime orderDate,
-        DateTime etaDate,
-        string poNumber,
-        string? note)
+    public async Task<IActionResult> Create(PlaceOrderViewModel model)
     {
         if (!ModelState.IsValid)
-            return View(await BuildViewModel());
+        {
+            model.Patterns = await _db.Patterns.OrderBy(p => p.Name).ToListAsync();
+            var allDims = await _db.DimensionValues.ToListAsync();
+            model.Widths = allDims.Where(d => d.Type == "Width").OrderBy(d => d.Value).Select(d => d.Value).ToList();
+            model.Lengths = allDims.Where(d => d.Type == "Length").OrderBy(d => d.Value).Select(d => d.Value).ToList();
+            model.Thicknesses = allDims.Where(d => d.Type == "Thickness").OrderBy(d => d.Value).Select(d => d.Value).ToList();
+            return View(model);
+        }
 
-        var size = await _sizeService.FindOrCreate(width, length, thickness);
+        var size = await _sizeService.FindOrCreate(model.Width, model.Length, model.Thickness);
 
         _db.Orders.Add(new Order
         {
-            PatternId = patternId,
+            PatternId = model.PatternId,
             SizeId = size.Id,
-            QuantityOrdered = quantityOrdered,
-            OrderDate = orderDate,
-            EtaDate = etaDate,
-            PoNumber = poNumber?.Trim() ?? string.Empty,
-            Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim()
+            QuantityOrdered = model.QuantityOrdered,
+            OrderDate = model.OrderDate,
+            EtaDate = model.EtaDate,
+            PoNumber = model.PoNumber?.Trim() ?? string.Empty,
+            Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim()
         });
 
         await _db.SaveChangesAsync();
