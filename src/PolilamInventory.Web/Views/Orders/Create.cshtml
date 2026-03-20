@@ -1,0 +1,143 @@
+@model PolilamInventory.Web.ViewModels.PlaceOrderViewModel
+@{
+    ViewData["Title"] = "Place Order";
+}
+
+<h2 class="mb-4">Place Order</h2>
+
+<div class="row">
+    <!-- Left: Order form -->
+    <div class="col-md-6">
+        <div class="card bg-card p-4">
+            <form asp-action="Create" method="post">
+                <div class="mb-3">
+                    <label class="form-label">Pattern</label>
+                    <select name="patternId" id="patternSelect" class="form-select" required>
+                        <option value="">— Select Pattern —</option>
+                        @foreach (var p in Model.Patterns)
+                        {
+                            <option value="@p.Id">@p.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col">
+                        <label class="form-label">Width</label>
+                        <select name="width" class="form-select" required>
+                            <option value="">W</option>
+                            @foreach (var w in Model.Widths)
+                            {
+                                <option value="@w">@w"</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Length</label>
+                        <select name="length" class="form-select" required>
+                            <option value="">L</option>
+                            @foreach (var l in Model.Lengths)
+                            {
+                                <option value="@l">@l"</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Thickness</label>
+                        <select name="thickness" class="form-select" required>
+                            <option value="">T</option>
+                            @foreach (var t in Model.Thicknesses)
+                            {
+                                <option value="@t">@t"</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Quantity</label>
+                    <input type="number" name="quantityOrdered" class="form-control" min="1" required />
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col">
+                        <label class="form-label">Order Date</label>
+                        <input type="date" name="orderDate" class="form-control"
+                               value="@Model.OrderDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="col">
+                        <label class="form-label">ETA</label>
+                        <input type="date" name="etaDate" class="form-control"
+                               value="@Model.EtaDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">PO Number</label>
+                    <input type="text" name="poNumber" class="form-control" required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Note <span class="text-muted">(optional)</span></label>
+                    <input type="text" name="note" class="form-control" />
+                </div>
+
+                <button type="submit" class="btn btn-submit-green w-100">Place Order</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right: Context panel -->
+    <div class="col-md-6">
+        <div class="card bg-card p-4" id="contextPanel">
+            <p class="text-muted">Select a pattern to see current inventory and open orders.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('patternSelect').addEventListener('change', function() {
+    const patternId = this.value;
+    const panel = document.getElementById('contextPanel');
+    if (!patternId) {
+        panel.innerHTML = '<p class="text-muted">Select a pattern to see current inventory and open orders.</p>';
+        return;
+    }
+    panel.innerHTML = '<p class="text-muted">Loading...</p>';
+    fetch('/api/context/pattern/' + patternId)
+        .then(r => r.json())
+        .then(data => {
+            let html = '';
+
+            html += '<h6 class="mb-2">Current Inventory</h6>';
+            if (data.inventory.length === 0) {
+                html += '<p class="text-muted small">No inventory records.</p>';
+            } else {
+                html += '<table class="table table-dark table-sm"><thead><tr><th>Size</th><th>In Stock</th></tr></thead><tbody>';
+                data.inventory.forEach(row => {
+                    const cls = row.inStock < 0 ? 'text-negative' : row.inStock === 0 ? 'text-muted' : 'text-healthy';
+                    html += `<tr><td>${row.sizeDisplay}</td><td class="${cls}">${row.inStock}</td></tr>`;
+                });
+                html += '</tbody></table>';
+            }
+
+            html += '<h6 class="mt-3 mb-2">Open Orders</h6>';
+            if (data.openOrders.length === 0) {
+                html += '<p class="text-muted small">No open orders.</p>';
+            } else {
+                html += '<table class="table table-dark table-sm"><thead><tr><th>PO</th><th>Size</th><th>Ordered</th><th>Received</th><th>Outstanding</th><th>ETA</th></tr></thead><tbody>';
+                data.openOrders.forEach(o => {
+                    html += `<tr><td>${o.poNumber}</td><td>${o.sizeDisplay}</td><td>${o.ordered}</td><td>${o.received}</td><td>${o.outstanding}</td><td>${o.eta}</td></tr>`;
+                });
+                html += '</tbody></table>';
+            }
+
+            panel.innerHTML = html;
+        })
+        .catch(() => {
+            panel.innerHTML = '<p class="text-danger small">Failed to load context.</p>';
+        });
+});
+</script>
+}
