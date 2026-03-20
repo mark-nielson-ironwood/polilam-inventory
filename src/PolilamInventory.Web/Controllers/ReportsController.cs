@@ -10,19 +10,140 @@ public class ReportsController : Controller
 {
     private readonly AppDbContext _db;
     private readonly InventoryService _inventoryService;
+    private readonly ReportExportService _exportService;
 
-    public ReportsController(AppDbContext db, InventoryService inventoryService)
+    public ReportsController(AppDbContext db, InventoryService inventoryService, ReportExportService exportService)
     {
         _db = db;
         _inventoryService = inventoryService;
+        _exportService = exportService;
     }
+
+    // ─── Display actions ──────────────────────────────────────────────────
 
     public async Task<IActionResult> Inventory(string? patternFilter)
     {
-        var patterns = await _db.Patterns.OrderBy(p => p.Name).ToListAsync();
-        var patternNames = patterns.Select(p => p.Name).ToList();
+        var rows = await GetInventoryRows(patternFilter);
+        var patternNames = await _db.Patterns.OrderBy(p => p.Name).Select(p => p.Name).ToListAsync();
 
-        // Collect all distinct pattern+size combos that have any transaction
+        var vm = new InventoryReportViewModel
+        {
+            PatternFilter = patternFilter,
+            PatternNames = patternNames,
+            Rows = rows
+        };
+
+        return View(vm);
+    }
+
+    public async Task<IActionResult> Removal(DateTime? startDate, DateTime? endDate, bool includeInactive = false)
+    {
+        var today = DateTime.Today;
+        startDate ??= new DateTime(today.Year, today.Month, 1);
+        endDate ??= today;
+
+        var rows = await GetRemovalRows(startDate, endDate, includeInactive);
+        var patternNames = await _db.Patterns.OrderBy(p => p.Name).Select(p => p.Name).ToListAsync();
+
+        var vm = new RemovalReportViewModel
+        {
+            StartDate = startDate,
+            EndDate = endDate,
+            IncludeInactive = includeInactive,
+            PatternNames = patternNames,
+            Rows = rows
+        };
+
+        return View(vm);
+    }
+
+    public async Task<IActionResult> Transactions(string? patternFilter, DateTime? startDate, DateTime? endDate)
+    {
+        var today = DateTime.Today;
+        startDate ??= today.AddDays(-30);
+        endDate ??= today;
+
+        var rows = await GetTransactionRows(patternFilter, startDate, endDate);
+        var patternNames = await _db.Patterns.OrderBy(p => p.Name).Select(p => p.Name).ToListAsync();
+
+        var vm = new TransactionReportViewModel
+        {
+            PatternFilter = patternFilter,
+            StartDate = startDate,
+            EndDate = endDate,
+            PatternNames = patternNames,
+            Rows = rows
+        };
+
+        return View(vm);
+    }
+
+    // ─── Export actions ───────────────────────────────────────────────────
+
+    public async Task<IActionResult> InventoryCsv(string? patternFilter)
+    {
+        var rows = await GetInventoryRows(patternFilter);
+        var bytes = _exportService.GenerateInventoryCsv(rows);
+        return File(bytes, "text/csv", "inventory-report.csv");
+    }
+
+    public async Task<IActionResult> InventoryPdf(string? patternFilter)
+    {
+        var rows = await GetInventoryRows(patternFilter);
+        var bytes = _exportService.GenerateInventoryPdf(rows, patternFilter);
+        return File(bytes, "application/pdf", "inventory-report.pdf");
+    }
+
+    public async Task<IActionResult> RemovalCsv(DateTime? startDate, DateTime? endDate, bool includeInactive = false)
+    {
+        var today = DateTime.Today;
+        startDate ??= new DateTime(today.Year, today.Month, 1);
+        endDate ??= today;
+
+        var rows = await GetRemovalRows(startDate, endDate, includeInactive);
+        var bytes = _exportService.GenerateRemovalCsv(rows);
+        return File(bytes, "text/csv", "removal-report.csv");
+    }
+
+    public async Task<IActionResult> RemovalPdf(DateTime? startDate, DateTime? endDate, bool includeInactive = false)
+    {
+        var today = DateTime.Today;
+        startDate ??= new DateTime(today.Year, today.Month, 1);
+        endDate ??= today;
+
+        var rows = await GetRemovalRows(startDate, endDate, includeInactive);
+        var bytes = _exportService.GenerateRemovalPdf(rows, startDate, endDate);
+        return File(bytes, "application/pdf", "removal-report.pdf");
+    }
+
+    public async Task<IActionResult> TransactionCsv(string? patternFilter, DateTime? startDate, DateTime? endDate)
+    {
+        var today = DateTime.Today;
+        startDate ??= today.AddDays(-30);
+        endDate ??= today;
+
+        var rows = await GetTransactionRows(patternFilter, startDate, endDate);
+        var bytes = _exportService.GenerateTransactionCsv(rows);
+        return File(bytes, "text/csv", "transactions-report.csv");
+    }
+
+    public async Task<IActionResult> TransactionPdf(string? patternFilter, DateTime? startDate, DateTime? endDate)
+    {
+        var today = DateTime.Today;
+        startDate ??= today.AddDays(-30);
+        endDate ??= today;
+
+        var rows = await GetTransactionRows(patternFilter, startDate, endDate);
+        var bytes = _exportService.GenerateTransactionPdf(rows, patternFilter, startDate, endDate);
+        return File(bytes, "application/pdf", "transactions-report.pdf");
+    }
+
+    // ─── Private query helpers ────────────────────────────────────────────
+
+    private async Task<List<InventoryReportRow>> GetInventoryRows(string? patternFilter)
+    {
+        var patterns = await _db.Patterns.OrderBy(p => p.Name).ToListAsync();
+
         var orderCombos = await _db.Orders.Select(o => new { o.PatternId, o.SizeId }).Distinct().ToListAsync();
         var pullCombos = await _db.ActualPulls.Select(p => new { p.PatternId, p.SizeId }).Distinct().ToListAsync();
         var claimCombos = await _db.PlannedClaims.Select(c => new { c.PatternId, c.SizeId }).Distinct().ToListAsync();
@@ -38,7 +159,6 @@ public class ReportsController : Controller
         var allSizes = await _db.Sizes.ToListAsync();
         var sizeById = allSizes.ToDictionary(s => s.Id);
 
-        // For lastAdjDate: collect most recent date per pattern+size across all transaction types
         var orderDates = await _db.Orders.Select(o => new { o.PatternId, o.SizeId, Date = o.OrderDate }).ToListAsync();
         var receiptDates = await _db.Receipts.Include(r => r.Order)
             .Select(r => new { r.Order.PatternId, r.Order.SizeId, Date = r.DateReceived }).ToListAsync();
@@ -123,35 +243,17 @@ public class ReportsController : Controller
             }
         }
 
-        // Sort by pattern name then ascending thickness
-        rows = rows.OrderBy(r => r.PatternName).ThenBy(r => r.Thickness).ToList();
-
-        var vm = new InventoryReportViewModel
-        {
-            PatternFilter = patternFilter,
-            PatternNames = patternNames,
-            Rows = rows
-        };
-
-        return View(vm);
+        return rows.OrderBy(r => r.PatternName).ThenBy(r => r.Thickness).ToList();
     }
 
-    public async Task<IActionResult> Removal(DateTime? startDate, DateTime? endDate, bool includeInactive = false)
+    private async Task<List<RemovalReportRow>> GetRemovalRows(DateTime? startDate, DateTime? endDate, bool includeInactive)
     {
-        // Default date range: first of current month to today
-        var today = DateTime.Today;
-        startDate ??= new DateTime(today.Year, today.Month, 1);
-        endDate ??= today;
-
-        var patternNames = await _db.Patterns.OrderBy(p => p.Name).Select(p => p.Name).ToListAsync();
-
         var pulls = await _db.ActualPulls
             .Include(p => p.Pattern)
             .Include(p => p.Size)
-            .Where(p => p.PullDate >= startDate.Value && p.PullDate <= endDate.Value)
+            .Where(p => p.PullDate >= startDate!.Value && p.PullDate <= endDate!.Value)
             .ToListAsync();
 
-        // Group by pattern+size
         var grouped = pulls
             .GroupBy(p => (p.PatternId, p.SizeId, p.Pattern.Name, p.Size.DisplayName, p.Size.Thickness))
             .Select(g => new RemovalReportRow
@@ -170,7 +272,6 @@ public class ReportsController : Controller
         }
         else
         {
-            // When includeInactive, also include all pattern+size combos with zero pulls
             var allCombos = await _db.Orders.Select(o => new { o.PatternId, o.SizeId })
                 .Union(_db.ActualPulls.Select(p => new { p.PatternId, p.SizeId }))
                 .Union(_db.PlannedClaims.Select(c => new { c.PatternId, c.SizeId }))
@@ -203,36 +304,18 @@ public class ReportsController : Controller
             }
         }
 
-        var rows = grouped.OrderBy(r => r.PatternName).ThenBy(r => r.Thickness).ToList();
-
-        var vm = new RemovalReportViewModel
-        {
-            StartDate = startDate,
-            EndDate = endDate,
-            IncludeInactive = includeInactive,
-            PatternNames = patternNames,
-            Rows = rows
-        };
-
-        return View(vm);
+        return grouped.OrderBy(r => r.PatternName).ThenBy(r => r.Thickness).ToList();
     }
 
-    public async Task<IActionResult> Transactions(string? patternFilter, DateTime? startDate, DateTime? endDate)
+    private async Task<List<TransactionReportRow>> GetTransactionRows(string? patternFilter, DateTime? startDate, DateTime? endDate)
     {
-        // Default date range: last 30 days
-        var today = DateTime.Today;
-        startDate ??= today.AddDays(-30);
-        endDate ??= today;
-
-        var patternNames = await _db.Patterns.OrderBy(p => p.Name).Select(p => p.Name).ToListAsync();
-
         var rows = new List<TransactionReportRow>();
 
         // Orders
         var ordersQuery = _db.Orders
             .Include(o => o.Pattern)
             .Include(o => o.Size)
-            .Where(o => o.OrderDate >= startDate.Value && o.OrderDate <= endDate.Value);
+            .Where(o => o.OrderDate >= startDate!.Value && o.OrderDate <= endDate!.Value);
         if (!string.IsNullOrWhiteSpace(patternFilter))
             ordersQuery = ordersQuery.Where(o => o.Pattern.Name == patternFilter);
 
@@ -252,7 +335,7 @@ public class ReportsController : Controller
         var receiptsQuery = _db.Receipts
             .Include(r => r.Order).ThenInclude(o => o.Pattern)
             .Include(r => r.Order).ThenInclude(o => o.Size)
-            .Where(r => r.DateReceived >= startDate.Value && r.DateReceived <= endDate.Value);
+            .Where(r => r.DateReceived >= startDate!.Value && r.DateReceived <= endDate!.Value);
         if (!string.IsNullOrWhiteSpace(patternFilter))
             receiptsQuery = receiptsQuery.Where(r => r.Order.Pattern.Name == patternFilter);
 
@@ -272,7 +355,7 @@ public class ReportsController : Controller
         var pullsQuery = _db.ActualPulls
             .Include(p => p.Pattern)
             .Include(p => p.Size)
-            .Where(p => p.PullDate >= startDate.Value && p.PullDate <= endDate.Value);
+            .Where(p => p.PullDate >= startDate!.Value && p.PullDate <= endDate!.Value);
         if (!string.IsNullOrWhiteSpace(patternFilter))
             pullsQuery = pullsQuery.Where(p => p.Pattern.Name == patternFilter);
 
@@ -292,7 +375,7 @@ public class ReportsController : Controller
         var adjQuery = _db.InventoryAdjustments
             .Include(a => a.Pattern)
             .Include(a => a.Size)
-            .Where(a => a.DateAdded >= startDate.Value && a.DateAdded <= endDate.Value);
+            .Where(a => a.DateAdded >= startDate!.Value && a.DateAdded <= endDate!.Value);
         if (!string.IsNullOrWhiteSpace(patternFilter))
             adjQuery = adjQuery.Where(a => a.Pattern.Name == patternFilter);
 
@@ -312,7 +395,7 @@ public class ReportsController : Controller
         var claimsQuery = _db.PlannedClaims
             .Include(c => c.Pattern)
             .Include(c => c.Size)
-            .Where(c => c.ScheduledDate >= startDate.Value && c.ScheduledDate <= endDate.Value);
+            .Where(c => c.ScheduledDate >= startDate!.Value && c.ScheduledDate <= endDate!.Value);
         if (!string.IsNullOrWhiteSpace(patternFilter))
             claimsQuery = claimsQuery.Where(c => c.Pattern.Name == patternFilter);
 
@@ -328,17 +411,6 @@ public class ReportsController : Controller
             Note = c.Note
         }));
 
-        rows = rows.OrderByDescending(r => r.Date).ToList();
-
-        var vm = new TransactionReportViewModel
-        {
-            PatternFilter = patternFilter,
-            StartDate = startDate,
-            EndDate = endDate,
-            PatternNames = patternNames,
-            Rows = rows
-        };
-
-        return View(vm);
+        return rows.OrderByDescending(r => r.Date).ToList();
     }
 }

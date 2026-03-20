@@ -3,6 +3,9 @@ using PolilamInventory.Web.Data;
 using PolilamInventory.Web.Middleware;
 using PolilamInventory.Web.Models;
 using PolilamInventory.Web.Services;
+using QuestPDF.Infrastructure;
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +16,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<PlannedClaimConversionService>();
 builder.Services.AddScoped<SizeService>();
+builder.Services.AddScoped<ReportExportService>();
 
 var app = builder.Build();
 

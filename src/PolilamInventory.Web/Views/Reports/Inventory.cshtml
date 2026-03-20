@@ -22,8 +22,8 @@
             <button type="submit" class="btn btn-sm btn-primary">Apply Filters</button>
         </div>
         <div class="col-auto ms-auto">
-            <a href="#" class="btn btn-sm btn-outline-secondary me-1">Export CSV</a>
-            <a href="#" class="btn btn-sm btn-outline-secondary">Export PDF</a>
+            <a asp-action="InventoryCsv" asp-route-patternFilter="@Model.PatternFilter" class="btn btn-sm btn-outline-secondary me-1">Export CSV</a>
+            <a asp-action="InventoryPdf" asp-route-patternFilter="@Model.PatternFilter" class="btn btn-sm btn-outline-secondary">Export PDF</a>
         </div>
     </div>
 </form>

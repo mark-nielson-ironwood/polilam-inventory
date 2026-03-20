@@ -10,7 +10,7 @@ namespace PolilamInventory.Tests.Controllers;
 public class ReportsControllerTests
 {
     private static ReportsController CreateController(TestDb db)
-        => new ReportsController(db.Context, new InventoryService(db.Context));
+        => new ReportsController(db.Context, new InventoryService(db.Context), new ReportExportService());
 
     [Fact]
     public async Task Inventory_CalculatesColumnsCorrectly()
