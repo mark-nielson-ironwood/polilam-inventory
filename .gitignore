@@ -2,3 +2,10 @@
 .worktrees/
 ~
 .claude/settings.local.json
+# .NET build outputs
+bin/
+obj/
+*.user
+*.suo
+.vs/
+polilam.db
