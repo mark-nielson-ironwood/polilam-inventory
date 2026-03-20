@@ -1,0 +1,6 @@
+@model PolilamInventory.Web.Models.ErrorViewModel
+@{ ViewData["Title"] = "Error"; }
+<h2>An error occurred.</h2>
+@if (!string.IsNullOrEmpty(Model?.RequestId)) {
+    <p>Request ID: @Model.RequestId</p>
+}

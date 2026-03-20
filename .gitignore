@@ -9,3 +9,4 @@ obj/
 *.suo
 .vs/
 polilam.db
+publish/
