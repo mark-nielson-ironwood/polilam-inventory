@@ -1,0 +1,172 @@
+@model PolilamInventory.Web.ViewModels.AdjustInventoryViewModel
+@{
+    ViewData["Title"] = "Adjust Inventory";
+}
+
+<h2 class="mb-4">Adjust Inventory</h2>
+
+<div class="row">
+    <!-- Left: Adjustment form -->
+    <div class="col-md-6">
+        <div class="card bg-card p-4">
+            <form asp-action="Create" method="post">
+                <div class="mb-3">
+                    <label class="form-label">Pattern</label>
+                    <select name="PatternId" id="patternSelect" class="form-select" required>
+                        <option value="">— Select Pattern —</option>
+                        @foreach (var p in Model.Patterns)
+                        {
+                            <option value="@p.Id">@p.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="PatternId" class="text-danger small"></span>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col">
+                        <label class="form-label">Width</label>
+                        <select name="Width" id="widthSelect" class="form-select" required>
+                            <option value="">W</option>
+                            @foreach (var w in Model.Widths)
+                            {
+                                <option value="@w">@w"</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Width" class="text-danger small"></span>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Length</label>
+                        <select name="Length" id="lengthSelect" class="form-select" required>
+                            <option value="">L</option>
+                            @foreach (var l in Model.Lengths)
+                            {
+                                <option value="@l">@l"</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Length" class="text-danger small"></span>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Thickness</label>
+                        <select name="Thickness" id="thicknessSelect" class="form-select" required>
+                            <option value="">T</option>
+                            @foreach (var t in Model.Thicknesses)
+                            {
+                                <option value="@t">@t"</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Thickness" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Quantity (negative to remove/correct)</label>
+                    <input type="number" name="Quantity" id="quantityInput" class="form-control"
+                           min="-9999" max="9999" value="@Model.Quantity" required />
+                    <span asp-validation-for="Quantity" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Date</label>
+                    <input type="date" name="DateAdded" class="form-control"
+                           value="@Model.DateAdded.ToString("yyyy-MM-dd")" required />
+                    <span asp-validation-for="DateAdded" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Note <span class="text-muted">(optional)</span></label>
+                    <textarea name="Note" class="form-control" rows="2" maxlength="500">@Model.Note</textarea>
+                    <span asp-validation-for="Note" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Save Adjustment</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right: Context panel -->
+    <div class="col-md-6">
+        <div class="card bg-card p-4" id="contextPanel">
+            <p class="text-muted">Select a pattern and size to see current inventory.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var patternSelect   = document.getElementById('patternSelect');
+    var widthSelect     = document.getElementById('widthSelect');
+    var lengthSelect    = document.getElementById('lengthSelect');
+    var thicknessSelect = document.getElementById('thicknessSelect');
+    var quantityInput   = document.getElementById('quantityInput');
+    var panel           = document.getElementById('contextPanel');
+
+    var currentInventory = null;
+
+    function colorClass(n) {
+        if (n > 0) return 'text-healthy';
+        if (n === 0) return 'text-warning';
+        return 'text-negative';
+    }
+
+    function updatePanel() {
+        var patternId = patternSelect.value;
+        var width     = widthSelect.value;
+        var length    = lengthSelect.value;
+        var thickness = thicknessSelect.value;
+
+        if (!patternId || !width || !length || !thickness) {
+            currentInventory = null;
+            panel.innerHTML = '<p class="text-muted">Select a pattern and size to see current inventory.</p>';
+            return;
+        }
+
+        panel.innerHTML = '<p class="text-muted">Loading...</p>';
+
+        fetch('/Adjustments/GetCurrentInventory?patternId=' + encodeURIComponent(patternId)
+            + '&width=' + encodeURIComponent(width)
+            + '&length=' + encodeURIComponent(length)
+            + '&thickness=' + encodeURIComponent(thickness))
+            .then(function (r) {
+                if (!r.ok) throw new Error('API error');
+                return r.json();
+            })
+            .then(function (data) {
+                currentInventory = data.current;
+                renderPanel();
+            })
+            .catch(function () {
+                currentInventory = null;
+                panel.innerHTML = '<p class="text-danger small">Failed to load inventory.</p>';
+            });
+    }
+
+    function renderPanel() {
+        if (currentInventory === null) return;
+
+        var qty = parseInt(quantityInput.value, 10);
+        var html = '<p class="mb-1">Current inventory: <span class="' + colorClass(currentInventory) + ' fw-bold">'
+            + currentInventory + ' sheets</span></p>';
+
+        if (!isNaN(qty) && quantityInput.value !== '') {
+            var after = currentInventory + qty;
+            html += '<p class="mb-0">After adjustment: <span class="' + colorClass(after) + ' fw-bold">'
+                + after + ' sheets</span></p>';
+        }
+
+        panel.innerHTML = html;
+    }
+
+    patternSelect.addEventListener('change', updatePanel);
+    widthSelect.addEventListener('change', updatePanel);
+    lengthSelect.addEventListener('change', updatePanel);
+    thicknessSelect.addEventListener('change', updatePanel);
+
+    quantityInput.addEventListener('input', function () {
+        if (currentInventory !== null) {
+            renderPanel();
+        }
+    });
+}());
+</script>
+}

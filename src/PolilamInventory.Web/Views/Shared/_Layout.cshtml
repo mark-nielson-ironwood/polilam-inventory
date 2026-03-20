@@ -31,6 +31,10 @@
            class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Pulls" ? "active" : "")">
             Pull Sheets
         </a>
+        <a asp-controller="Adjustments" asp-action="Create"
+           class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Adjustments" ? "active" : "")">
+            Adjust Inventory
+        </a>
 
         <div class="sidebar-section-label">Reports</div>
         <a asp-controller="Reports" asp-action="Inventory"
