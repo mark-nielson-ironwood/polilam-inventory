@@ -283,7 +283,7 @@ public class ReportsControllerTests
         Assert.Contains(vm.Rows, r => r.Type == "Order");
         Assert.Contains(vm.Rows, r => r.Type == "Receipt");
         Assert.Contains(vm.Rows, r => r.Type == "Pull");
-        Assert.Contains(vm.Rows, r => r.Type == "Adjustment");
+        Assert.Contains(vm.Rows, r => r.Type == "Initial");
         Assert.Contains(vm.Rows, r => r.Type == "Planned");
     }
 

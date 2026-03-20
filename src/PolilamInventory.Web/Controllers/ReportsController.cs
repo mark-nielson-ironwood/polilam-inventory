@@ -383,7 +383,7 @@ public class ReportsController : Controller
         rows.AddRange(adjustments.Select(a => new TransactionReportRow
         {
             Date = a.DateAdded,
-            Type = "Adjustment",
+            Type = "Initial",
             PatternName = a.Pattern.Name,
             SizeDisplay = a.Size.DisplayName,
             Quantity = a.Quantity,
