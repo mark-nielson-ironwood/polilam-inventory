@@ -1,0 +1,218 @@
+@model PolilamInventory.Web.ViewModels.PullSheetsViewModel
+@{
+    ViewData["Title"] = "Pull Sheets";
+}
+
+<h2 class="mb-4">Pull Sheets</h2>
+
+@if (TempData["Warning"] != null)
+{
+    <div class="alert alert-warning" role="alert">
+        @TempData["Warning"]
+    </div>
+}
+
+<div class="row">
+    <!-- Left: Pull form -->
+    <div class="col-md-7">
+        <div class="card bg-card p-4">
+
+            <!-- Mode toggle -->
+            <div class="mb-4">
+                <div class="btn-group w-100" role="group">
+                    <button type="button" id="btnPullNow" class="btn btn-danger active"
+                            onclick="setMode('PullNow')">Pull Now</button>
+                    <button type="button" id="btnScheduleFuture" class="btn btn-outline-warning"
+                            onclick="setMode('ScheduleFuture')">Schedule Future Pull</button>
+                </div>
+            </div>
+
+            <form asp-action="Create" method="post" id="pullForm">
+                <input type="hidden" name="Mode" id="modeInput" value="PullNow" />
+
+                <div class="mb-3">
+                    <label class="form-label">Pattern</label>
+                    <select name="PatternId" id="patternSelect" class="form-select" required>
+                        <option value="">— Select Pattern —</option>
+                        @foreach (var p in Model.Patterns)
+                        {
+                            if (Model.PatternId == p.Id)
+                            {
+                                <option value="@p.Id" selected>@p.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@p.Id">@p.Name</option>
+                            }
+                        }
+                    </select>
+                    <span asp-validation-for="PatternId" class="text-danger small"></span>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col">
+                        <label class="form-label">Width</label>
+                        <select name="Width" id="widthSelect" class="form-select" required>
+                            <option value="">W</option>
+                            @foreach (var w in Model.Widths)
+                            {
+                                if (Model.Width == w)
+                                {
+                                    <option value="@w" selected>@w"</option>
+                                }
+                                else
+                                {
+                                    <option value="@w">@w"</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Length</label>
+                        <select name="Length" id="lengthSelect" class="form-select" required>
+                            <option value="">L</option>
+                            @foreach (var l in Model.Lengths)
+                            {
+                                if (Model.Length == l)
+                                {
+                                    <option value="@l" selected>@l"</option>
+                                }
+                                else
+                                {
+                                    <option value="@l">@l"</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Thickness</label>
+                        <select name="Thickness" id="thicknessSelect" class="form-select" required>
+                            <option value="">T</option>
+                            @foreach (var t in Model.Thicknesses)
+                            {
+                                if (Model.Thickness == t)
+                                {
+                                    <option value="@t" selected>@t"</option>
+                                }
+                                else
+                                {
+                                    <option value="@t">@t"</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Quantity</label>
+                    <input type="number" name="Quantity" id="quantityInput" class="form-control"
+                           min="1" value="@(Model.Quantity > 0 ? Model.Quantity.ToString() : "")" required />
+                    <span asp-validation-for="Quantity" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">SO Number</label>
+                    <input type="text" name="SoNumber" class="form-control"
+                           value="@Model.SoNumber" required />
+                    <span asp-validation-for="SoNumber" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" id="dateLabel">Pull Date</label>
+                    <input type="date" name="PullDate" class="form-control"
+                           value="@Model.PullDate.ToString("yyyy-MM-dd")" required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Note <span class="text-muted">(optional)</span></label>
+                    <textarea name="Note" class="form-control" rows="2">@Model.Note</textarea>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-danger w-100">Pull Sheets</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right: Inventory impact panel -->
+    <div class="col-md-5">
+        <div class="card bg-card p-4" id="impactPanel">
+            <h6 class="mb-3">Inventory Impact</h6>
+            <p class="text-muted small">Select a pattern, size, and quantity to see impact.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function setMode(mode) {
+        document.getElementById('modeInput').value = mode;
+
+        const btnPullNow = document.getElementById('btnPullNow');
+        const btnSchedule = document.getElementById('btnScheduleFuture');
+        const dateLabel = document.getElementById('dateLabel');
+        const submitBtn = document.getElementById('submitBtn');
+
+        if (mode === 'PullNow') {
+            btnPullNow.className = 'btn btn-danger active';
+            btnSchedule.className = 'btn btn-outline-warning';
+            dateLabel.textContent = 'Pull Date';
+            submitBtn.className = 'btn btn-danger w-100';
+            submitBtn.textContent = 'Pull Sheets';
+        } else {
+            btnPullNow.className = 'btn btn-outline-danger';
+            btnSchedule.className = 'btn btn-warning active';
+            dateLabel.textContent = 'Scheduled Date';
+            submitBtn.className = 'btn btn-warning w-100';
+            submitBtn.textContent = 'Schedule Pull';
+        }
+
+        updateImpactPreview();
+    }
+
+    function updateImpactPreview() {
+        const patternId = document.getElementById('patternSelect').value;
+        const width = document.getElementById('widthSelect').value;
+        const length = document.getElementById('lengthSelect').value;
+        const thickness = document.getElementById('thicknessSelect').value;
+        const quantity = document.getElementById('quantityInput').value;
+        const mode = document.getElementById('modeInput').value;
+        const panel = document.getElementById('impactPanel');
+
+        if (!patternId || !width || !length || !thickness || !quantity || parseInt(quantity) < 1) {
+            panel.innerHTML = '<h6 class="mb-3">Inventory Impact</h6><p class="text-muted small">Select a pattern, size, and quantity to see impact.</p>';
+            return;
+        }
+
+        fetch(`/Pulls/GetInventoryImpact?patternId=${patternId}&width=${width}&length=${length}&thickness=${thickness}&quantity=${quantity}`)
+            .then(r => {
+                if (!r.ok) throw new Error('API error');
+                return r.json();
+            })
+            .then(data => {
+                const afterPull = data.afterPull;
+                const afterCls = afterPull < 0 ? 'text-negative' : afterPull === 0 ? 'text-muted' : 'text-healthy';
+
+                let html = '<h6 class="mb-3">Inventory Impact</h6>';
+                html += `<p class="mb-1">Current: <span class="text-healthy">${data.current}</span></p>`;
+                html += `<p class="mb-2">After pull: <span class="${afterCls}">${afterPull}</span></p>`;
+
+                if (afterPull < 0 && mode === 'PullNow') {
+                    html += `<div class="alert alert-danger py-2 small">Insufficient inventory — cannot pull ${Math.abs(afterPull)} more than available.</div>`;
+                } else if (afterPull < 0 && mode === 'ScheduleFuture') {
+                    html += `<div class="alert alert-warning py-2 small">Warning: this scheduled pull would result in a deficit of ${Math.abs(afterPull)} sheets.</div>`;
+                }
+
+                panel.innerHTML = html;
+            })
+            .catch(() => {
+                panel.innerHTML = '<h6 class="mb-3">Inventory Impact</h6><p class="text-danger small">Failed to load impact data.</p>';
+            });
+    }
+
+    // Wire up change events
+    ['patternSelect', 'widthSelect', 'lengthSelect', 'thicknessSelect', 'quantityInput'].forEach(id => {
+        document.getElementById(id).addEventListener('change', updateImpactPreview);
+    });
+    document.getElementById('quantityInput').addEventListener('input', updateImpactPreview);
+</script>
+}
