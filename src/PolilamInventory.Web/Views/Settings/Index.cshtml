@@ -1,0 +1,156 @@
+@model PolilamInventory.Web.ViewModels.SettingsViewModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<h2 class="mb-4">Settings</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-inventory-danger mb-3">@TempData["Error"]</div>
+}
+
+<!-- Patterns Section -->
+<div class="card bg-card p-4 mb-4">
+    <h5 class="mb-3">Patterns</h5>
+    <table class="table table-dark table-sm mb-3">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Reorder Trigger</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Model.Patterns)
+            {
+                <tr>
+                    <form asp-action="EditPattern" method="post">
+                        <input type="hidden" name="id" value="@p.Id" />
+                        <td>
+                            <input type="text" name="name" value="@p.Name" class="form-control form-control-sm" style="width:200px" />
+                        </td>
+                        <td>
+                            <input type="number" name="reorderTrigger" value="@p.ReorderTrigger" class="form-control form-control-sm" style="width:80px" min="0" />
+                        </td>
+                        <td class="d-flex gap-2 align-items-center">
+                            <button type="submit" class="btn btn-sm btn-submit-green">Save</button>
+                            @if (!p.HasTransactions)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                    onclick="if(confirm('Delete pattern @p.Name?')) { document.getElementById('delete-pattern-@p.Id').submit(); }">Delete</button>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Has transactions</span>
+                            }
+                        </td>
+                    </form>
+                </tr>
+                @if (!p.HasTransactions)
+                {
+                    <form id="delete-pattern-@p.Id" asp-action="DeletePattern" method="post" style="display:none">
+                        <input type="hidden" name="id" value="@p.Id" />
+                    </form>
+                }
+            }
+        </tbody>
+    </table>
+
+    <!-- Add Pattern -->
+    <form asp-action="AddPattern" method="post" class="d-flex gap-2 align-items-center">
+        <input type="text" name="name" placeholder="Pattern name" class="form-control form-control-sm" style="width:200px" required />
+        <input type="number" name="reorderTrigger" value="5" placeholder="Reorder trigger" class="form-control form-control-sm" style="width:120px" min="0" />
+        <button type="submit" class="btn btn-sm btn-submit-green">Add Pattern</button>
+    </form>
+</div>
+
+<!-- Dimension Values Section -->
+<div class="card bg-card p-4 mb-4">
+    <h5 class="mb-3">Dimension Values</h5>
+    <div class="row">
+        <!-- Widths -->
+        <div class="col-md-4">
+            <h6 class="text-muted">Widths</h6>
+            @foreach (var w in Model.Widths)
+            {
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span>@w.Value"</span>
+                    @if (!w.HasTransactions)
+                    {
+                        <form asp-action="DeleteDimensionValue" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@w.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger btn-xs">×</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span class="text-muted small">in use</span>
+                    }
+                </div>
+            }
+            <form asp-action="AddDimensionValue" method="post" class="d-flex gap-1 mt-2">
+                <input type="hidden" name="type" value="Width" />
+                <input type="number" name="value" step="0.01" placeholder="e.g. 60" class="form-control form-control-sm" style="width:100px" required />
+                <button type="submit" class="btn btn-sm btn-submit-green">Add</button>
+            </form>
+        </div>
+
+        <!-- Lengths -->
+        <div class="col-md-4">
+            <h6 class="text-muted">Lengths</h6>
+            @foreach (var l in Model.Lengths)
+            {
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span>@l.Value"</span>
+                    @if (!l.HasTransactions)
+                    {
+                        <form asp-action="DeleteDimensionValue" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@l.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger btn-xs">×</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span class="text-muted small">in use</span>
+                    }
+                </div>
+            }
+            <form asp-action="AddDimensionValue" method="post" class="d-flex gap-1 mt-2">
+                <input type="hidden" name="type" value="Length" />
+                <input type="number" name="value" step="0.01" placeholder="e.g. 144" class="form-control form-control-sm" style="width:100px" required />
+                <button type="submit" class="btn btn-sm btn-submit-green">Add</button>
+            </form>
+        </div>
+
+        <!-- Thicknesses -->
+        <div class="col-md-4">
+            <h6 class="text-muted">Thicknesses</h6>
+            @foreach (var t in Model.Thicknesses)
+            {
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span>@t.Value" <span class="text-muted small">(@t.MaterialType)</span></span>
+                    @if (!t.HasTransactions)
+                    {
+                        <form asp-action="DeleteDimensionValue" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@t.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger btn-xs">×</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span class="text-muted small">in use</span>
+                    }
+                </div>
+            }
+            <form asp-action="AddDimensionValue" method="post" class="d-flex gap-1 mt-2">
+                <input type="hidden" name="type" value="Thickness" />
+                <input type="number" name="value" step="0.001" placeholder="e.g. 0.75" class="form-control form-control-sm" style="width:100px" required />
+                <button type="submit" class="btn btn-sm btn-submit-green">Add</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- App Version -->
+<p class="text-muted small">Version @Model.AppVersion</p>

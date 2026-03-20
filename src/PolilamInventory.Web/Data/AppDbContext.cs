@@ -14,9 +14,14 @@ public class AppDbContext : DbContext
     public DbSet<InventoryAdjustment> InventoryAdjustments => Set<InventoryAdjustment>();
     public DbSet<PlannedClaim> PlannedClaims => Set<PlannedClaim>();
     public DbSet<ActualPull> ActualPulls => Set<ActualPull>();
+    public DbSet<DimensionValue> DimensionValues => Set<DimensionValue>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<DimensionValue>()
+            .HasIndex(d => new { d.Type, d.Value })
+            .IsUnique();
+
         modelBuilder.Entity<Size>()
             .HasIndex(s => new { s.Width, s.Length, s.Thickness })
             .IsUnique();
