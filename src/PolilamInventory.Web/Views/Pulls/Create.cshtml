@@ -143,6 +143,7 @@
 </div>
 
 @section Scripts {
+@await Html.PartialAsync("_ValidationScriptsPartial")
 <script>
     function setMode(mode) {
         document.getElementById('modeInput').value = mode;
