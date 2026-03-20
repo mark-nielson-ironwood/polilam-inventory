@@ -5,35 +5,43 @@ using PolilamInventory.Web.Models;
 
 namespace PolilamInventory.Tests.Helpers;
 
-public static class TestDbHelper
+public sealed class TestDb : IDisposable
 {
-    public static AppDbContext CreateContext()
+    private readonly SqliteConnection _connection;
+    public AppDbContext Context { get; }
+
+    private TestDb()
     {
-        var connection = new SqliteConnection("DataSource=:memory:");
-        connection.Open();
-
+        _connection = new SqliteConnection("DataSource=:memory:");
+        _connection.Open();
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
+            .UseSqlite(_connection)
             .Options;
-
-        var context = new AppDbContext(options);
-        context.Database.EnsureCreated();
-        return context;
+        Context = new AppDbContext(options);
+        Context.Database.EnsureCreated();
     }
 
-    public static Pattern CreatePattern(AppDbContext db, string name = "Espresso", int reorderTrigger = 5)
+    public static TestDb Create() => new();
+
+    public Pattern CreatePattern(string name = "Espresso", int reorderTrigger = 5)
     {
         var pattern = new Pattern { Name = name, ReorderTrigger = reorderTrigger };
-        db.Patterns.Add(pattern);
-        db.SaveChanges();
+        Context.Patterns.Add(pattern);
+        Context.SaveChanges();
         return pattern;
     }
 
-    public static Size CreateSize(AppDbContext db, decimal width = 60, decimal length = 144, decimal thickness = 0.75m)
+    public Size CreateSize(decimal width = 60, decimal length = 144, decimal thickness = 0.75m)
     {
         var size = new Size { Width = width, Length = length, Thickness = thickness };
-        db.Sizes.Add(size);
-        db.SaveChanges();
+        Context.Sizes.Add(size);
+        Context.SaveChanges();
         return size;
+    }
+
+    public void Dispose()
+    {
+        Context.Dispose();
+        _connection.Dispose();
     }
 }
