@@ -1,0 +1,122 @@
+@model PolilamInventory.Web.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h2 class="mb-4">Dashboard</h2>
+
+@* Alert Banner *@
+@if (Model.Alerts.Any())
+{
+    <div class="mb-4">
+        @foreach (var alert in Model.Alerts)
+        {
+            <div class="alert alert-@alert.Severity alert-dismissible fade show mb-2" role="alert">
+                <strong>@alert.PatternName @alert.SizeDisplay:</strong> @alert.Message
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+    </div>
+}
+
+@* Pattern Cards — 3-column grid *@
+<div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
+    @foreach (var card in Model.PatternCards)
+    {
+        <div class="col">
+            <div class="card bg-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">@card.PatternName</h5>
+                        @if (card.Status == "deficit")
+                        {
+                            <span class="badge bg-danger">Deficit</span>
+                        }
+                        else if (card.Status == "low-stock")
+                        {
+                            <span class="badge bg-warning text-dark">Low Stock</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">Healthy</span>
+                        }
+                    </div>
+                    <p class="text-muted mb-3">Total: <strong>@card.TotalSheets</strong> sheets</p>
+
+                    @if (card.Sizes.Count == 0)
+                    {
+                        <p class="text-muted fst-italic">No inventory data</p>
+                    }
+                    else
+                    {
+                        <table class="table table-dark table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Size</th>
+                                    <th class="text-end">In Stock</th>
+                                    <th class="text-end">On Order</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var size in card.Sizes)
+                                {
+                                    <tr>
+                                        <td>@size.SizeDisplay</td>
+                                        <td class="text-end @(size.StockStatus == "deficit" ? "text-negative" : size.StockStatus == "low-stock" ? "text-warning" : "text-healthy")">
+                                            @size.InStock
+                                        </td>
+                                        <td class="text-end text-muted">@size.OnOrder</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@* Upcoming Planned Claims *@
+<h4 class="mb-3">Upcoming Planned Claims</h4>
+@if (!Model.UpcomingClaims.Any())
+{
+    <p class="text-muted">No upcoming claims.</p>
+}
+else
+{
+    <div class="card bg-card">
+        <div class="card-body p-0">
+            <table class="table table-dark table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Pattern</th>
+                        <th>Size</th>
+                        <th class="text-end">Qty</th>
+                        <th>Scheduled</th>
+                        <th>SO#</th>
+                        <th>Deficit?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var claim in Model.UpcomingClaims)
+                    {
+                        <tr>
+                            <td>@claim.PatternName</td>
+                            <td>@claim.SizeDisplay</td>
+                            <td class="text-end">@claim.Quantity</td>
+                            <td>@claim.ScheduledDate.ToString("yyyy-MM-dd")</td>
+                            <td>@claim.SoNumber</td>
+                            <td>
+                                @if (claim.IsDeficit)
+                                {
+                                    <span class="badge bg-warning text-dark">Deficit Risk</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
