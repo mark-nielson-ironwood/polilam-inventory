@@ -18,7 +18,7 @@ public class SettingsController : Controller
     public async Task<IActionResult> Index()
     {
         var patterns = await _db.Patterns.OrderBy(p => p.Name).ToListAsync();
-        var dimensionValues = await _db.DimensionValues.OrderBy(d => d.Value).ToListAsync();
+        var dimensionValues = (await _db.DimensionValues.ToListAsync()).OrderBy(d => d.Value).ToList();
 
         var patternIds = patterns.Select(p => p.Id).ToList();
         var patternsWithTransactions = await _db.Orders.Where(o => patternIds.Contains(o.PatternId)).Select(o => o.PatternId)
