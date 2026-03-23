@@ -25,31 +25,31 @@
             @foreach (var p in Model.Patterns)
             {
                 <tr>
-                    <form asp-action="EditPattern" method="post">
-                        <input type="hidden" name="id" value="@p.Id" />
-                        <td>
-                            <input type="text" name="name" value="@p.Name" class="form-control form-control-sm" style="width:200px" />
-                        </td>
-                        <td>
-                            <input type="number" name="reorderTrigger" value="@p.ReorderTrigger" class="form-control form-control-sm" style="width:80px" min="0" />
-                        </td>
-                        <td class="d-flex gap-2 align-items-center">
+                    <td>
+                        <input type="text" name="name" value="@p.Name" class="form-control form-control-sm" style="width:200px" form="edit-@p.Id" />
+                    </td>
+                    <td>
+                        <input type="number" name="reorderTrigger" value="@p.ReorderTrigger" class="form-control form-control-sm" style="width:80px" min="0" form="edit-@p.Id" />
+                    </td>
+                    <td class="d-flex gap-2 align-items-center">
+                        <form id="edit-@p.Id" asp-action="EditPattern" method="post">
+                            <input type="hidden" name="id" value="@p.Id" />
                             <button type="submit" class="btn btn-sm btn-submit-green">Save</button>
-                            @if (!p.HasTransactions)
-                            {
-                                <form asp-action="DeletePattern" method="post" class="d-inline">
-                                    <input type="hidden" name="id" value="@p.Id" />
-                                    <button type="button" class="btn btn-sm btn-outline-danger"
-                                            data-pattern-name="@p.Name"
-                                            onclick="if(confirm('Delete pattern ' + this.dataset.patternName + '?')) { this.closest('form').submit(); }">Delete</button>
-                                </form>
-                            }
-                            else
-                            {
-                                <span class="text-muted small">Has transactions</span>
-                            }
-                        </td>
-                    </form>
+                        </form>
+                        @if (!p.HasTransactions)
+                        {
+                            <form asp-action="DeletePattern" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@p.Id" />
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        data-pattern-name="@p.Name"
+                                        onclick="if(confirm('Delete pattern ' + this.dataset.patternName + '?')) { this.closest('form').submit(); }">Delete</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">Has transactions</span>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
