@@ -20,8 +20,12 @@
 
         <div class="sidebar-section-label">Transactions</div>
         <a asp-controller="Orders" asp-action="Create"
-           class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" ? "active" : "")">
+           class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" && ViewContext.RouteData.Values["action"]?.ToString() == "Create" ? "active" : "")">
             Place Order
+        </a>
+        <a asp-controller="Orders" asp-action="Index"
+           class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" && ViewContext.RouteData.Values["action"]?.ToString() != "Create" ? "active" : "")">
+            Orders
         </a>
         <a asp-controller="Receipts" asp-action="Create"
            class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Receipts" ? "active" : "")">

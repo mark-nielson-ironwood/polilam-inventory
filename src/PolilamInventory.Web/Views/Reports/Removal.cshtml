@@ -47,7 +47,7 @@ else
                 <tr>
                     <th>Pattern</th>
                     <th>W×L×T</th>
-                    <th>Sheets Removed</th>
+                    <th class="text-center">Sheets Removed</th>
                     <th>Last Removal Date</th>
                 </tr>
             </thead>
@@ -57,7 +57,7 @@ else
                     <tr>
                         <td>@row.PatternName</td>
                         <td>@row.SizeDisplay</td>
-                        <td class="@(row.SheetsRemoved == 0 ? "text-muted" : "text-negative")">
+                        <td class="text-center @(row.SheetsRemoved == 0 ? "text-muted" : "text-negative")">
                             @row.SheetsRemoved
                         </td>
                         <td>@(row.LastRemovalDate.HasValue ? row.LastRemovalDate.Value.ToString("yyyy-MM-dd") : "—")</td>

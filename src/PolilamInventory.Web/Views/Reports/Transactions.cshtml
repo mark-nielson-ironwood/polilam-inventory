@@ -52,8 +52,9 @@ else
                     <th>Type</th>
                     <th>Pattern</th>
                     <th>W×L×T</th>
-                    <th>Qty</th>
+                    <th class="text-center">Qty</th>
                     <th>PO/SO</th>
+                    <th>ETA</th>
                     <th>Note</th>
                 </tr>
             </thead>
@@ -71,23 +72,24 @@ else
                                 case "Receipt":
                                     <span class="badge bg-success">Receipt</span>
                                     break;
-                                case "Pull":
-                                    <span class="badge bg-danger">Pull</span>
+                                case "Pulled":
+                                    <span class="badge bg-danger">Pulled</span>
                                     break;
                                 case "Initial":
                                     <span class="badge bg-secondary">Initial</span>
                                     break;
-                                case "Planned":
-                                    <span class="badge bg-warning text-dark">Planned</span>
+                                case "Will Pull":
+                                    <span class="badge bg-warning text-dark">Will Pull</span>
                                     break;
                             }
                         </td>
                         <td>@row.PatternName</td>
                         <td>@row.SizeDisplay</td>
-                        <td class="@(row.Quantity < 0 ? "text-negative" : "text-healthy")">
+                        <td class="text-center @(row.Quantity < 0 ? "text-negative" : "text-healthy")">
                             @row.Quantity
                         </td>
                         <td>@(row.PoSoNumber ?? "—")</td>
+                        <td>@(row.EtaDate.HasValue ? row.EtaDate.Value.ToString("yyyy-MM-dd") : "")</td>
                         <td>@(row.Note ?? "")</td>
                     </tr>
                 }

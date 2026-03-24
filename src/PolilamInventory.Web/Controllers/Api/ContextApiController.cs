@@ -26,10 +26,11 @@ public class ContextApiController : ControllerBase
             .Distinct()
             .ToListAsync();
 
-        var sizes = await _db.Sizes
+        var sizes = (await _db.Sizes
             .Where(s => sizeIds.Contains(s.Id))
+            .ToListAsync())
             .OrderBy(s => s.Thickness)
-            .ToListAsync();
+            .ToList();
 
         // Batch: sum adjustments, receipts, pulls per size in one query each
         var adjustmentsBySize = await _db.InventoryAdjustments

@@ -17,5 +17,6 @@ public class TransactionReportRow
     public string SizeDisplay { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public string? PoSoNumber { get; set; }
+    public DateTime? EtaDate { get; set; }
     public string? Note { get; set; }
 }

@@ -1,0 +1,93 @@
+@model List<PolilamInventory.Web.Models.Order>
+@{
+    ViewData["Title"] = "Orders";
+}
+
+<h2 class="mb-4">Orders</h2>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @success
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <p class="text-muted">No orders yet.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-dark table-hover table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>PO#</th>
+                    <th>Pattern</th>
+                    <th>W×L×T</th>
+                    <th class="text-center">Qty Ordered</th>
+                    <th class="text-center">Qty Received</th>
+                    <th class="text-center">Outstanding</th>
+                    <th>ETA</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in Model)
+                {
+                    <tr>
+                        <td>@order.PoNumber</td>
+                        <td>@order.Pattern.Name</td>
+                        <td>@order.Size.DisplayName</td>
+                        <td class="text-center">@order.QuantityOrdered</td>
+                        <td class="text-center">@order.QuantityReceived</td>
+                        <td class="text-center">@order.QuantityOutstanding</td>
+                        <td>@order.EtaDate.ToString("yyyy-MM-dd")</td>
+                        <td>
+                            @if (order.IsFilled)
+                            {
+                                <span class="badge bg-success">Filled</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-primary">Open</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="Edit" asp-route-id="@order.Id" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
+                            @if (order.Receipts.Count == 0)
+                            {
+                                <form asp-action="Cancel" asp-route-id="@order.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            onclick="if(confirm('Cancel order PO# @order.PoNumber? This will delete it.')) { this.closest('form').submit(); }">
+                                        Cancel
+                                    </button>
+                                </form>
+                            }
+                            else if (!order.IsFilled)
+                            {
+                                <form asp-action="CloseOut" asp-route-id="@order.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="button" class="btn btn-sm btn-outline-warning"
+                                            onclick="if(confirm('Close out order PO# @order.PoNumber? Quantity will be set to @order.QuantityReceived.')) { this.closest('form').submit(); }">
+                                        Close Out
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

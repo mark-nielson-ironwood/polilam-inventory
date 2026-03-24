@@ -1,0 +1,14 @@
+services:
+  polilam-inventory:
+    image: ghcr.io/mark-nielson-ironwood/polilam-inventory:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - polilam-data:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/polilam.db
+    restart: unless-stopped
+
+volumes:
+  polilam-data:

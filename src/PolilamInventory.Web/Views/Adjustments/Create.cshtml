@@ -29,7 +29,7 @@
                             <option value="">W</option>
                             @foreach (var w in Model.Widths)
                             {
-                                <option value="@w">@w"</option>
+                                <option value="@w" selected="@(w == 60)">@w"</option>
                             }
                         </select>
                         <span asp-validation-for="Width" class="text-danger small"></span>
@@ -40,7 +40,7 @@
                             <option value="">L</option>
                             @foreach (var l in Model.Lengths)
                             {
-                                <option value="@l">@l"</option>
+                                <option value="@l" selected="@(l == 144)">@l"</option>
                             }
                         </select>
                         <span asp-validation-for="Length" class="text-danger small"></span>

@@ -1,0 +1,65 @@
+@model PolilamInventory.Web.ViewModels.EditOrderViewModel
+@{
+    ViewData["Title"] = "Edit Order";
+}
+
+<h2 class="mb-4">Edit Order</h2>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card bg-card p-4">
+            <form asp-action="Edit" method="post">
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="PatternName" />
+                <input type="hidden" asp-for="SizeDisplay" />
+                <input type="hidden" asp-for="QuantityReceived" />
+
+                <div class="mb-3">
+                    <label class="form-label">Pattern</label>
+                    <p class="form-control-plaintext text-white">@Model.PatternName</p>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Size</label>
+                    <p class="form-control-plaintext text-white">@Model.SizeDisplay</p>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Quantity Received</label>
+                    <p class="form-control-plaintext text-white">@Model.QuantityReceived</p>
+                </div>
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="PoNumber" class="form-label">PO Number</label>
+                    <input asp-for="PoNumber" class="form-control" required />
+                    <span asp-validation-for="PoNumber" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="QuantityOrdered" class="form-label">Quantity Ordered</label>
+                    <input asp-for="QuantityOrdered" class="form-control" type="number" min="1" required />
+                    <span asp-validation-for="QuantityOrdered" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="EtaDate" class="form-label">ETA</label>
+                    <input asp-for="EtaDate" class="form-control" type="date" value="@Model.EtaDate.ToString("yyyy-MM-dd")" required />
+                    <span asp-validation-for="EtaDate" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Note" class="form-label">Note <span class="text-muted">(optional)</span></label>
+                    <input asp-for="Note" class="form-control" />
+                    <span asp-validation-for="Note" class="text-danger"></span>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-submit-green flex-grow-1">Save Changes</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

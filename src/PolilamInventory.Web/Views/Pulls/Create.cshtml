@@ -56,7 +56,7 @@
                             <option value="">W</option>
                             @foreach (var w in Model.Widths)
                             {
-                                if (Model.Width == w)
+                                if (Model.Width == w || (Model.Width == 0 && w == 60))
                                 {
                                     <option value="@w" selected>@w"</option>
                                 }
@@ -73,7 +73,7 @@
                             <option value="">L</option>
                             @foreach (var l in Model.Lengths)
                             {
-                                if (Model.Length == l)
+                                if (Model.Length == l || (Model.Length == 0 && l == 144))
                                 {
                                     <option value="@l" selected>@l"</option>
                                 }
@@ -210,10 +210,14 @@
             });
     }
 
-    // Wire up change events
-    ['patternSelect', 'widthSelect', 'lengthSelect', 'thicknessSelect', 'quantityInput'].forEach(id => {
+    // Wire up change and input events
+    ['patternSelect', 'widthSelect', 'lengthSelect', 'thicknessSelect'].forEach(id => {
         document.getElementById(id).addEventListener('change', updateImpactPreview);
     });
+    document.getElementById('quantityInput').addEventListener('change', updateImpactPreview);
     document.getElementById('quantityInput').addEventListener('input', updateImpactPreview);
+
+    // Fire once on load in case fields are pre-populated
+    updateImpactPreview();
 </script>
 }

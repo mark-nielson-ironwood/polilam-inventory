@@ -40,15 +40,15 @@ else
                 <tr>
                     <th>Pattern</th>
                     <th>W×L×T</th>
-                    <th>In Stock</th>
+                    <th class="text-center">In Stock</th>
                     <th>Last Adj.</th>
-                    <th>On Order</th>
+                    <th class="text-center">On Order</th>
                     <th>Order Date</th>
                     <th>ETA</th>
-                    <th>Committed Before Arrival</th>
-                    <th>Projected at Arrival</th>
-                    <th>Total Committed</th>
-                    <th>Projected Balance</th>
+                    <th class="text-center">Committed Before Arrival</th>
+                    <th class="text-center">Projected at Arrival</th>
+                    <th class="text-center">Total Committed</th>
+                    <th class="text-center">Projected Balance</th>
                     <th>Re-Order?</th>
                 </tr>
             </thead>
@@ -58,19 +58,19 @@ else
                     <tr>
                         <td>@row.PatternName</td>
                         <td>@row.SizeDisplay</td>
-                        <td class="@(row.InStock < 0 ? "text-negative" : row.InStock <= row.ReorderTrigger ? "text-warning" : "text-healthy")">
+                        <td class="text-center @(row.InStock < 0 ? "text-negative" : row.InStock <= row.ReorderTrigger ? "text-warning" : "text-healthy")">
                             @row.InStock
                         </td>
                         <td>@(row.LastAdjDate.HasValue ? row.LastAdjDate.Value.ToString("yyyy-MM-dd") : "—")</td>
-                        <td>@row.OnOrder</td>
+                        <td class="text-center">@row.OnOrder</td>
                         <td>@(row.OrderDate.HasValue ? row.OrderDate.Value.ToString("yyyy-MM-dd") : "—")</td>
                         <td>@(row.Eta.HasValue ? row.Eta.Value.ToString("yyyy-MM-dd") : "—")</td>
-                        <td>@row.CommittedBeforeArrival</td>
-                        <td class="@(row.ProjectedAtArrival < 0 ? "text-negative" : "")">
+                        <td class="text-center">@row.CommittedBeforeArrival</td>
+                        <td class="text-center @(row.ProjectedAtArrival < 0 ? "text-negative" : "")">
                             @row.ProjectedAtArrival
                         </td>
-                        <td>@row.TotalCommitted</td>
-                        <td class="@(row.ProjectedBalance < 0 ? "text-negative" : row.ProjectedBalance <= row.ReorderTrigger ? "text-warning" : "text-healthy")">
+                        <td class="text-center">@row.TotalCommitted</td>
+                        <td class="text-center @(row.ProjectedBalance < 0 ? "text-negative" : row.ProjectedBalance <= row.ReorderTrigger ? "text-warning" : "text-healthy")">
                             @row.ProjectedBalance
                         </td>
                         <td>

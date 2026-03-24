@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+.claude/
+.superpowers/
+.worktrees/
+publish/
+polilam.db
+*.user
+*.suo
+*.xlsm
+~$*

@@ -328,6 +328,7 @@ public class ReportsController : Controller
             SizeDisplay = o.Size.DisplayName,
             Quantity = o.QuantityOrdered,
             PoSoNumber = o.PoNumber,
+            EtaDate = o.EtaDate,
             Note = o.Note
         }));
 
@@ -363,7 +364,7 @@ public class ReportsController : Controller
         rows.AddRange(pulls.Select(p => new TransactionReportRow
         {
             Date = p.PullDate,
-            Type = "Pull",
+            Type = "Pulled",
             PatternName = p.Pattern.Name,
             SizeDisplay = p.Size.DisplayName,
             Quantity = -p.Quantity,
@@ -403,7 +404,7 @@ public class ReportsController : Controller
         rows.AddRange(claims.Select(c => new TransactionReportRow
         {
             Date = c.ScheduledDate,
-            Type = "Planned",
+            Type = "Will Pull",
             PatternName = c.Pattern.Name,
             SizeDisplay = c.Size.DisplayName,
             Quantity = -c.Quantity,

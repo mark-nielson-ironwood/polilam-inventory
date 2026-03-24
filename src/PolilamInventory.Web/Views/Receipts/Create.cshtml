@@ -23,7 +23,7 @@
                             <option value="@o.Id"
                                     data-po="@o.PoNumber"
                                     data-outstanding="@o.QuantityOutstanding">
-                                PO@o.PoNumber — @o.Pattern.Name @o.Size.DisplayName (@o.QuantityOutstanding outstanding)
+                                @o.PoNumber — @o.Pattern.Name @o.Size.DisplayName (@o.QuantityOutstanding outstanding)
                             </option>
                         }
                     </select>
@@ -149,10 +149,10 @@
             html += '<p class="text-muted small">No previous receipts for this order.</p>';
         } else {
             html += '<table class="table table-dark table-sm">';
-            html += '<thead><tr><th>Date</th><th>Qty</th><th>Note</th></tr></thead>';
+            html += '<thead><tr><th>Date</th><th class="text-center">Qty</th><th>Note</th></tr></thead>';
             html += '<tbody>';
             data.receipts.forEach(function (r) {
-                html += `<tr><td>${r.date}</td><td>${r.qty}</td><td>${r.note || '<span class="text-muted">—</span>'}</td></tr>`;
+                html += `<tr><td>${r.date}</td><td class="text-center">${r.qty}</td><td>${r.note || '<span class="text-muted">—</span>'}</td></tr>`;
             });
             html += '</tbody></table>';
         }
