@@ -39,7 +39,7 @@ public class ReportsController : Controller
     public async Task<IActionResult> Removal(DateTime? startDate, DateTime? endDate, bool includeInactive = false)
     {
         var today = DateTime.Today;
-        startDate ??= new DateTime(today.Year, today.Month, 1);
+        startDate ??= today.AddMonths(-1);
         endDate ??= today;
 
         var rows = await GetRemovalRows(startDate, endDate, includeInactive);
@@ -60,8 +60,11 @@ public class ReportsController : Controller
     public async Task<IActionResult> Transactions(string? patternFilter, DateTime? startDate, DateTime? endDate)
     {
         var today = DateTime.Today;
-        startDate ??= today.AddDays(-30);
-        endDate ??= today;
+        startDate ??= new DateTime(today.Year, 1, 1);
+        var maxScheduled = await _db.PlannedClaims.AnyAsync()
+            ? await _db.PlannedClaims.MaxAsync(c => c.ScheduledDate)
+            : today;
+        endDate ??= maxScheduled > today ? maxScheduled : today;
 
         var rows = await GetTransactionRows(patternFilter, startDate, endDate);
         var patternNames = await _db.Patterns.OrderBy(p => p.Name).Select(p => p.Name).ToListAsync();
@@ -97,7 +100,7 @@ public class ReportsController : Controller
     public async Task<IActionResult> RemovalCsv(DateTime? startDate, DateTime? endDate, bool includeInactive = false)
     {
         var today = DateTime.Today;
-        startDate ??= new DateTime(today.Year, today.Month, 1);
+        startDate ??= today.AddMonths(-1);
         endDate ??= today;
 
         var rows = await GetRemovalRows(startDate, endDate, includeInactive);
@@ -108,7 +111,7 @@ public class ReportsController : Controller
     public async Task<IActionResult> RemovalPdf(DateTime? startDate, DateTime? endDate, bool includeInactive = false)
     {
         var today = DateTime.Today;
-        startDate ??= new DateTime(today.Year, today.Month, 1);
+        startDate ??= today.AddMonths(-1);
         endDate ??= today;
 
         var rows = await GetRemovalRows(startDate, endDate, includeInactive);
@@ -119,8 +122,11 @@ public class ReportsController : Controller
     public async Task<IActionResult> TransactionCsv(string? patternFilter, DateTime? startDate, DateTime? endDate)
     {
         var today = DateTime.Today;
-        startDate ??= today.AddDays(-30);
-        endDate ??= today;
+        startDate ??= new DateTime(today.Year, 1, 1);
+        var maxScheduled = await _db.PlannedClaims.AnyAsync()
+            ? await _db.PlannedClaims.MaxAsync(c => c.ScheduledDate)
+            : today;
+        endDate ??= maxScheduled > today ? maxScheduled : today;
 
         var rows = await GetTransactionRows(patternFilter, startDate, endDate);
         var bytes = _exportService.GenerateTransactionCsv(rows);
@@ -130,8 +136,11 @@ public class ReportsController : Controller
     public async Task<IActionResult> TransactionPdf(string? patternFilter, DateTime? startDate, DateTime? endDate)
     {
         var today = DateTime.Today;
-        startDate ??= today.AddDays(-30);
-        endDate ??= today;
+        startDate ??= new DateTime(today.Year, 1, 1);
+        var maxScheduled = await _db.PlannedClaims.AnyAsync()
+            ? await _db.PlannedClaims.MaxAsync(c => c.ScheduledDate)
+            : today;
+        endDate ??= maxScheduled > today ? maxScheduled : today;
 
         var rows = await GetTransactionRows(patternFilter, startDate, endDate);
         var bytes = _exportService.GenerateTransactionPdf(rows, patternFilter, startDate, endDate);

@@ -32,8 +32,12 @@
             Receive Shipment
         </a>
         <a asp-controller="Pulls" asp-action="Create"
-           class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Pulls" ? "active" : "")">
+           class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Pulls" && ViewContext.RouteData.Values["action"]?.ToString() == "Create" ? "active" : "")">
             Pull Sheets
+        </a>
+        <a asp-controller="Pulls" asp-action="Index"
+           class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Pulls" && ViewContext.RouteData.Values["action"]?.ToString() != "Create" ? "active" : "")">
+            Pulls
         </a>
         <a asp-controller="Adjustments" asp-action="Create"
            class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Adjustments" ? "active" : "")">

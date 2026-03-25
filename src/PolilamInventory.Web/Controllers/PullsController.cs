@@ -21,6 +21,114 @@ public class PullsController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> Index()
+    {
+        var actualPulls = await _db.ActualPulls
+            .Include(p => p.Pattern)
+            .Include(p => p.Size)
+            .ToListAsync();
+
+        var plannedClaims = await _db.PlannedClaims
+            .Include(c => c.Pattern)
+            .Include(c => c.Size)
+            .ToListAsync();
+
+        var rows = actualPulls.Select(p => new PullRow
+        {
+            Id = p.Id,
+            Type = "Pulled",
+            PatternName = p.Pattern.Name,
+            SizeDisplay = p.Size.DisplayName,
+            Quantity = p.Quantity,
+            Date = p.PullDate,
+            SoNumber = p.SoNumber,
+            Note = p.Note,
+            CanEdit = false
+        })
+        .Concat(plannedClaims.Select(c => new PullRow
+        {
+            Id = c.Id,
+            Type = "Will Pull",
+            PatternName = c.Pattern.Name,
+            SizeDisplay = c.Size.DisplayName,
+            Quantity = c.Quantity,
+            Date = c.ScheduledDate,
+            SoNumber = c.SoNumber,
+            Note = c.Note,
+            CanEdit = true
+        }))
+        .OrderByDescending(r => r.Date)
+        .ToList();
+
+        return View(new PullsIndexViewModel { Rows = rows });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var claim = await _db.PlannedClaims
+            .Include(c => c.Pattern)
+            .Include(c => c.Size)
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (claim == null) return NotFound();
+
+        var vm = new EditPlannedPullViewModel
+        {
+            Id = claim.Id,
+            PatternName = claim.Pattern.Name,
+            SizeDisplay = claim.Size.DisplayName,
+            Quantity = claim.Quantity,
+            ScheduledDate = claim.ScheduledDate,
+            SoNumber = claim.SoNumber,
+            Note = claim.Note
+        };
+
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(EditPlannedPullViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var claim = await _db.PlannedClaims
+            .Include(c => c.Pattern)
+            .Include(c => c.Size)
+            .FirstOrDefaultAsync(c => c.Id == model.Id);
+
+        if (claim == null) return NotFound();
+
+        claim.Quantity = model.Quantity;
+        claim.ScheduledDate = model.ScheduledDate;
+        claim.SoNumber = model.SoNumber.Trim();
+        claim.Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim();
+
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Planned pull updated successfully.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var claim = await _db.PlannedClaims.FindAsync(id);
+        if (claim == null) return NotFound();
+
+        _db.PlannedClaims.Remove(claim);
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Planned pull cancelled.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Create()
     {
         var vm = await BuildViewModel();

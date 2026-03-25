@@ -190,4 +190,114 @@ public class PullsControllerTests
         Assert.True(tempData.ContainsKey("Warning"));
         Assert.Contains("deficit", tempData["Warning"]?.ToString(), StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task Edit_ValidUpdate_SavesAndRedirects()
+    {
+        using var db = TestDb.Create();
+        var pattern = db.CreatePattern(name: "Espresso");
+        var size = db.CreateSize(width: 60, length: 144, thickness: 0.75m);
+
+        var claim = new PlannedClaim
+        {
+            PatternId = pattern.Id,
+            SizeId = size.Id,
+            Quantity = 3,
+            ScheduledDate = DateTime.Today.AddDays(7),
+            SoNumber = "SO-100",
+            Note = "original note"
+        };
+        db.Context.PlannedClaims.Add(claim);
+        db.Context.SaveChanges();
+
+        var tempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>());
+        var controller = CreateController(db, tempData);
+
+        var model = new EditPlannedPullViewModel
+        {
+            Id = claim.Id,
+            PatternName = pattern.Name,
+            SizeDisplay = size.DisplayName,
+            Quantity = 10,
+            ScheduledDate = DateTime.Today.AddDays(14),
+            SoNumber = "SO-200",
+            Note = "updated note"
+        };
+
+        var result = await controller.Edit(model);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Index", redirect.ActionName);
+
+        var updated = db.Context.PlannedClaims.First(c => c.Id == claim.Id);
+        Assert.Equal(10, updated.Quantity);
+        Assert.Equal("SO-200", updated.SoNumber);
+        Assert.Equal("updated note", updated.Note);
+        Assert.True(tempData.ContainsKey("Success"));
+    }
+
+    [Fact]
+    public async Task Edit_InvalidModel_ReturnsView()
+    {
+        using var db = TestDb.Create();
+        var pattern = db.CreatePattern();
+        var size = db.CreateSize(width: 60, length: 144, thickness: 0.75m);
+
+        var claim = new PlannedClaim
+        {
+            PatternId = pattern.Id,
+            SizeId = size.Id,
+            Quantity = 3,
+            ScheduledDate = DateTime.Today.AddDays(7),
+            SoNumber = "SO-100"
+        };
+        db.Context.PlannedClaims.Add(claim);
+        db.Context.SaveChanges();
+
+        var controller = CreateController(db);
+        controller.ModelState.AddModelError("SoNumber", "Required");
+
+        var model = new EditPlannedPullViewModel
+        {
+            Id = claim.Id,
+            PatternName = pattern.Name,
+            SizeDisplay = size.DisplayName,
+            Quantity = 5,
+            ScheduledDate = DateTime.Today.AddDays(14),
+            SoNumber = ""
+        };
+
+        var result = await controller.Edit(model);
+
+        Assert.IsType<ViewResult>(result);
+    }
+
+    [Fact]
+    public async Task Cancel_DeletesPlannedClaim()
+    {
+        using var db = TestDb.Create();
+        var pattern = db.CreatePattern();
+        var size = db.CreateSize(width: 60, length: 144, thickness: 0.75m);
+
+        var claim = new PlannedClaim
+        {
+            PatternId = pattern.Id,
+            SizeId = size.Id,
+            Quantity = 3,
+            ScheduledDate = DateTime.Today.AddDays(7),
+            SoNumber = "SO-100"
+        };
+        db.Context.PlannedClaims.Add(claim);
+        db.Context.SaveChanges();
+
+        var tempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>());
+        var controller = CreateController(db, tempData);
+
+        var result = await controller.Cancel(claim.Id);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Index", redirect.ActionName);
+        Assert.Equal(0, db.Context.PlannedClaims.Count());
+        Assert.True(tempData.ContainsKey("Success"));
+    }
 }

@@ -77,11 +77,11 @@
     }
 </div>
 
-@* Upcoming Planned Claims *@
-<h4 class="mb-3">Upcoming Planned Claims</h4>
+@* Upcoming Planned Pulls *@
+<h4 class="mb-3">Upcoming Planned Pulls</h4>
 @if (!Model.UpcomingClaims.Any())
 {
-    <p class="text-muted">No upcoming claims.</p>
+    <p class="text-muted">No upcoming planned pulls.</p>
 }
 else
 {
@@ -92,7 +92,7 @@ else
                     <tr>
                         <th>Pattern</th>
                         <th>Size</th>
-                        <th class="text-end">Qty</th>
+                        <th class="text-center">Qty</th>
                         <th>Scheduled</th>
                         <th>SO#</th>
                         <th>Deficit?</th>
@@ -104,7 +104,7 @@ else
                         <tr>
                             <td>@claim.PatternName</td>
                             <td>@claim.SizeDisplay</td>
-                            <td class="text-end">@claim.Quantity</td>
+                            <td class="text-center">@claim.Quantity</td>
                             <td>@claim.ScheduledDate.ToString("yyyy-MM-dd")</td>
                             <td>@claim.SoNumber</td>
                             <td>

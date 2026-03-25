@@ -1,0 +1,85 @@
+@model PolilamInventory.Web.ViewModels.PullsIndexViewModel
+@{
+    ViewData["Title"] = "Pulls";
+}
+
+<h2 class="mb-4">Pulls</h2>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @success
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!Model.Rows.Any())
+{
+    <p class="text-muted">No pulls yet.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-dark table-hover table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Pattern</th>
+                    <th>Size</th>
+                    <th class="text-center">Qty</th>
+                    <th>Date</th>
+                    <th>SO#</th>
+                    <th>Note</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td>
+                            @if (row.Type == "Pulled")
+                            {
+                                <span class="badge bg-danger">Pulled</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Will Pull</span>
+                            }
+                        </td>
+                        <td>@row.PatternName</td>
+                        <td>@row.SizeDisplay</td>
+                        <td class="text-center">@row.Quantity</td>
+                        <td>@row.Date.ToString("yyyy-MM-dd")</td>
+                        <td>@row.SoNumber</td>
+                        <td>@row.Note</td>
+                        <td>
+                            @if (row.CanEdit)
+                            {
+                                <a asp-action="Edit" asp-route-id="@row.Id" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
+                                <form asp-action="Cancel" asp-route-id="@row.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            onclick="if(confirm('Cancel this planned pull?')) { this.closest('form').submit(); }">
+                                        Cancel
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted">&mdash;</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
