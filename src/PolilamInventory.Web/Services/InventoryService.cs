@@ -41,6 +41,19 @@ public class InventoryService
         return adjustments + receipts - pulls;
     }
 
+    public async Task<int> GetDropInventory(int patternId, int sizeId)
+    {
+        var dropAdjustments = await _db.InventoryAdjustments
+            .Where(a => a.PatternId == patternId && a.SizeId == sizeId && a.IsDrop)
+            .SumAsync(a => a.Quantity);
+
+        var dropPulls = await _db.ActualPulls
+            .Where(p => p.PatternId == patternId && p.SizeId == sizeId && p.IsDrop)
+            .SumAsync(p => p.Quantity);
+
+        return dropAdjustments - dropPulls;
+    }
+
     public async Task<InventoryProjection> GetProjectedInventory(int patternId, int sizeId)
     {
         var currentInventory = await GetCurrentInventory(patternId, sizeId);

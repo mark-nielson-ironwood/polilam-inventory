@@ -322,4 +322,100 @@ public class ReportsControllerTests
         Assert.All(vm.Rows, r => Assert.Equal("Espresso", r.PatternName));
         Assert.DoesNotContain(vm.Rows, r => r.PatternName == "Walnut");
     }
+
+    [Fact]
+    public async Task InventoryReport_ExcludesDropFromValue()
+    {
+        using var db = TestDb.Create();
+        var pattern = db.CreatePattern("Espresso", reorderTrigger: 5);
+        var size = db.CreateSize(width: 60, length: 144, thickness: 0.75m);
+
+        // Set up a thickness price: $10/sqft
+        db.Context.DimensionValues.Add(new DimensionValue { Type = "Thickness", Value = 0.75m, PricePerSqFt = 10m });
+        db.Context.SaveChanges();
+
+        // Normal adjustment: 8 sheets
+        db.Context.InventoryAdjustments.Add(new InventoryAdjustment
+        {
+            PatternId = pattern.Id,
+            SizeId = size.Id,
+            Quantity = 8,
+            DateAdded = DateTime.Today,
+            IsDrop = false
+        });
+
+        // Drop adjustment: 2 sheets
+        db.Context.InventoryAdjustments.Add(new InventoryAdjustment
+        {
+            PatternId = pattern.Id,
+            SizeId = size.Id,
+            Quantity = 2,
+            DateAdded = DateTime.Today,
+            IsDrop = true
+        });
+
+        db.Context.SaveChanges();
+
+        var controller = CreateController(db);
+        var result = await controller.Inventory(null);
+
+        var view = Assert.IsType<ViewResult>(result);
+        var vm = Assert.IsType<InventoryReportViewModel>(view.Model);
+
+        Assert.Single(vm.Rows);
+        var row = vm.Rows[0];
+
+        // InStock = 8 + 2 = 10 (total)
+        Assert.Equal(10, row.InStock);
+
+        // SheetValue = (60 * 144 / 144) * 10 = 60 * 10 = $600
+        Assert.Equal(600m, row.SheetValue);
+
+        // StockValue should exclude drop: purchasedInStock = 10 - 2 = 8, value = 8 * 600 = $4800
+        Assert.Equal(4800m, row.StockValue);
+    }
+
+    [Fact]
+    public async Task RemovalReport_ExcludesDropPulls()
+    {
+        using var db = TestDb.Create();
+        var pattern = db.CreatePattern();
+        var size = db.CreateSize();
+
+        var start = new DateTime(2026, 3, 1);
+        var end = new DateTime(2026, 3, 31);
+
+        // Normal pull: 3 sheets
+        db.Context.ActualPulls.Add(new ActualPull
+        {
+            PatternId = pattern.Id,
+            SizeId = size.Id,
+            Quantity = 3,
+            PullDate = new DateTime(2026, 3, 10),
+            SoNumber = "SO-A",
+            IsDrop = false
+        });
+
+        // Drop pull: 5 sheets — should be excluded
+        db.Context.ActualPulls.Add(new ActualPull
+        {
+            PatternId = pattern.Id,
+            SizeId = size.Id,
+            Quantity = 5,
+            PullDate = new DateTime(2026, 3, 15),
+            SoNumber = "SO-B",
+            IsDrop = true
+        });
+
+        db.Context.SaveChanges();
+
+        var controller = CreateController(db);
+        var result = await controller.Removal(start, end);
+
+        var view = Assert.IsType<ViewResult>(result);
+        var vm = Assert.IsType<RemovalReportViewModel>(view.Model);
+
+        Assert.Single(vm.Rows);
+        Assert.Equal(3, vm.Rows[0].SheetsRemoved); // Only non-drop pull counted
+    }
 }

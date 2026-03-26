@@ -27,7 +27,7 @@ public class OrdersController : Controller
             .Include(o => o.Receipts)
             .ToListAsync();
 
-        var sorted = orders.OrderByDescending(o => o.OrderDate).ToList();
+        var sorted = orders.OrderByDescending(o => o.EtaDate).ToList();
         return View(sorted);
     }
 

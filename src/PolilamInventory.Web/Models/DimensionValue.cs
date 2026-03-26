@@ -5,4 +5,5 @@ public class DimensionValue
     public int Id { get; set; }
     public string Type { get; set; } = string.Empty; // "Width", "Length", "Thickness"
     public decimal Value { get; set; }
+    public decimal? PricePerSqFt { get; set; }
 }

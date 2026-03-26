@@ -53,8 +53,8 @@
                             <thead>
                                 <tr>
                                     <th>Size</th>
-                                    <th class="text-end">In Stock</th>
-                                    <th class="text-end">On Order</th>
+                                    <th class="text-center">In Stock</th>
+                                    <th class="text-center">On Order</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -62,10 +62,10 @@
                                 {
                                     <tr>
                                         <td>@size.SizeDisplay</td>
-                                        <td class="text-end @(size.StockStatus == "deficit" ? "text-negative" : size.StockStatus == "low-stock" ? "text-warning" : "text-healthy")">
+                                        <td class="text-center @(size.StockStatus == "deficit" ? "text-negative" : size.StockStatus == "low-stock" ? "text-warning" : "text-healthy")">
                                             @size.InStock
                                         </td>
-                                        <td class="text-end text-muted">@size.OnOrder</td>
+                                        <td class="text-center text-muted">@size.OnOrder</td>
                                     </tr>
                                 }
                             </tbody>

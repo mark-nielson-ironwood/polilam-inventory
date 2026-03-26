@@ -33,4 +33,6 @@ public class AdjustInventoryViewModel
 
     [MaxLength(500)]
     public string? Note { get; set; }
+
+    public bool IsDrop { get; set; }
 }

@@ -30,4 +30,5 @@ public class ThicknessRow
     public decimal Value { get; set; }
     public string MaterialType { get; set; } = string.Empty;
     public bool HasTransactions { get; set; }
+    public decimal? PricePerSqFt { get; set; }
 }

@@ -99,15 +99,22 @@ public class DashboardController : Controller
                     continue;
 
                 var inStock = await _inventoryService.GetCurrentInventory(pattern.Id, sizeId);
+                var dropQty = await _inventoryService.GetDropInventory(pattern.Id, sizeId);
+                var purchasedStock = inStock - dropQty;
 
                 var onOrder = openOrders
                     .Where(o => o.PatternId == pattern.Id && o.SizeId == sizeId)
                     .Sum(o => o.QuantityOutstanding);
 
+                // Use purchased stock (excluding drop) for reorder trigger checks
+                // If all stock is drop (no purchased history), skip reorder warnings
+                bool onlyDrop = dropQty > 0 && purchasedStock <= 0 && onOrder == 0;
                 string stockStatus;
-                if (inStock < 0)
+                if (onlyDrop)
+                    stockStatus = "healthy";
+                else if (purchasedStock < 0)
                     stockStatus = "deficit";
-                else if (inStock <= pattern.ReorderTrigger)
+                else if (purchasedStock <= pattern.ReorderTrigger)
                     stockStatus = "low-stock";
                 else
                     stockStatus = "healthy";

@@ -13,11 +13,11 @@ public class ReportExportService
     public byte[] GenerateInventoryCsv(List<InventoryReportRow> rows)
     {
         var sb = new StringBuilder();
-        sb.Append("Pattern,W\u00d7L\u00d7T,In Stock,Last Adj.,On Order,Order Date,ETA,Committed Before Arrival,Projected at Arrival,Total Committed,Projected Balance,Re-Order?\r\n");
+        sb.Append("Pattern,W\u00d7L\u00d7T,In Stock,Last Adj.,On Order,Order Date,ETA,Committed Before Arrival,Projected at Arrival,Total Committed,Projected Balance,Re-Order?,Sheet Value,Stock Value,On Order Value\r\n");
 
         foreach (var row in rows)
         {
-            sb.Append($"{CsvField(row.PatternName)},{CsvField(row.SizeDisplay)},{row.InStock},{(row.LastAdjDate.HasValue ? row.LastAdjDate.Value.ToString("yyyy-MM-dd") : "")},{row.OnOrder},{(row.OrderDate.HasValue ? row.OrderDate.Value.ToString("yyyy-MM-dd") : "")},{(row.Eta.HasValue ? row.Eta.Value.ToString("yyyy-MM-dd") : "")},{row.CommittedBeforeArrival},{row.ProjectedAtArrival},{row.TotalCommitted},{row.ProjectedBalance},{(row.NeedsReorder ? "Yes" : "")}\r\n");
+            sb.Append($"{CsvField(row.PatternName)},{CsvField(row.SizeDisplay)},{row.InStock},{(row.LastAdjDate.HasValue ? row.LastAdjDate.Value.ToString("yyyy-MM-dd") : "")},{row.OnOrder},{(row.OrderDate.HasValue ? row.OrderDate.Value.ToString("yyyy-MM-dd") : "")},{(row.Eta.HasValue ? row.Eta.Value.ToString("yyyy-MM-dd") : "")},{row.CommittedBeforeArrival},{row.ProjectedAtArrival},{row.TotalCommitted},{row.ProjectedBalance},{(row.NeedsReorder ? "Yes" : "")},{row.SheetValue:F2},{row.StockValue:F2},{row.OnOrderValue:F2}\r\n");
         }
 
         var preamble = Encoding.UTF8.GetPreamble();
@@ -91,6 +91,9 @@ public class ReportExportService
                             columns.RelativeColumn(1.5f); // Total Committed
                             columns.RelativeColumn(1.5f); // Projected Balance
                             columns.RelativeColumn(1);  // Re-Order?
+                            columns.RelativeColumn(1);  // Sheet Value
+                            columns.RelativeColumn(1.2f); // Stock Value
+                            columns.RelativeColumn(1.2f); // On Order Value
                         });
 
                         table.Header(header =>
@@ -108,6 +111,9 @@ public class ReportExportService
                             header.Cell().Background(headerBg).Padding(2).Text("Total Cmtd.").FontColor(Colors.White).FontSize(9).Bold();
                             header.Cell().Background(headerBg).Padding(2).Text("Proj. Balance").FontColor(Colors.White).FontSize(9).Bold();
                             header.Cell().Background(headerBg).Padding(2).Text("Re-Order?").FontColor(Colors.White).FontSize(9).Bold();
+                            header.Cell().Background(headerBg).Padding(2).Text("Sheet $").FontColor(Colors.White).FontSize(9).Bold();
+                            header.Cell().Background(headerBg).Padding(2).Text("Stock $").FontColor(Colors.White).FontSize(9).Bold();
+                            header.Cell().Background(headerBg).Padding(2).Text("Order $").FontColor(Colors.White).FontSize(9).Bold();
                         });
 
                         for (int i = 0; i < rows.Count; i++)
@@ -126,7 +132,17 @@ public class ReportExportService
                             table.Cell().Background(bg).Padding(2).Text(row.TotalCommitted.ToString()).FontSize(9);
                             table.Cell().Background(bg).Padding(2).Text(row.ProjectedBalance.ToString()).FontSize(9);
                             table.Cell().Background(bg).Padding(2).Text(row.NeedsReorder ? "Yes" : "").FontSize(9);
+                            table.Cell().Background(bg).Padding(2).Text(row.SheetValue > 0 ? row.SheetValue.ToString("C2") : "").FontSize(9);
+                            table.Cell().Background(bg).Padding(2).Text(row.SheetValue > 0 ? row.StockValue.ToString("C0") : "").FontSize(9);
+                            table.Cell().Background(bg).Padding(2).Text(row.SheetValue > 0 ? row.OnOrderValue.ToString("C0") : "").FontSize(9);
                         }
+
+                        // Grand total row
+                        var totalBg = Colors.Grey.Lighten2;
+                        for (int c = 0; c < 13; c++)
+                            table.Cell().Background(totalBg).Padding(2).Text(c == 0 ? "Grand Total" : "").FontSize(9).Bold();
+                        table.Cell().Background(totalBg).Padding(2).Text(rows.Sum(r => r.StockValue).ToString("C0")).FontSize(9).Bold();
+                        table.Cell().Background(totalBg).Padding(2).Text(rows.Sum(r => r.OnOrderValue).ToString("C0")).FontSize(9).Bold();
                     });
                 });
             });

@@ -68,7 +68,7 @@
     <h5 class="mb-3">Dimension Values</h5>
     <div class="row">
         <!-- Widths -->
-        <div class="col-md-4">
+        <div class="col-md-3">
             <h6 class="text-muted">Widths</h6>
             @foreach (var w in Model.Widths)
             {
@@ -95,7 +95,7 @@
         </div>
 
         <!-- Lengths -->
-        <div class="col-md-4">
+        <div class="col-md-3">
             <h6 class="text-muted">Lengths</h6>
             @foreach (var l in Model.Lengths)
             {
@@ -122,25 +122,52 @@
         </div>
 
         <!-- Thicknesses -->
-        <div class="col-md-4">
+        <div class="col-md-6 ps-5">
             <h6 class="text-muted">Thicknesses</h6>
-            @foreach (var t in Model.Thicknesses)
-            {
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span>@t.Value" <span class="text-muted small">(@t.MaterialType)</span></span>
-                    @if (!t.HasTransactions)
+            <table class="table table-dark table-sm mb-2" style="width:auto">
+                <thead>
+                    <tr>
+                        <th>Thickness</th>
+                        <th>Type</th>
+                        <th>$/SqFt</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.Thicknesses)
                     {
-                        <form asp-action="DeleteDimensionValue" method="post" class="d-inline">
-                            <input type="hidden" name="id" value="@t.Id" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger btn-xs">×</button>
-                        </form>
+                        <tr class="align-middle">
+                            <td>@t.Value"</td>
+                            <td class="text-muted small">@t.MaterialType</td>
+                            <td>
+                                <form asp-action="UpdateThicknessPrice" method="post" class="d-flex align-items-center gap-1">
+                                    <input type="hidden" name="id" value="@t.Id" />
+                                    <span class="text-muted small">$</span>
+                                    <input type="number" name="pricePerSqFt" step="0.01" min="0"
+                                           value="@(t.PricePerSqFt?.ToString("F2") ?? "")"
+                                           placeholder="0.00"
+                                           class="form-control form-control-sm" style="width:80px" />
+                                    <button type="submit" class="btn btn-sm btn-submit-green btn-xs">$</button>
+                                </form>
+                            </td>
+                            <td>
+                                @if (!t.HasTransactions)
+                                {
+                                    <form asp-action="DeleteDimensionValue" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@t.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger btn-xs">×</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">in use</span>
+                                }
+                            </td>
+                        </tr>
                     }
-                    else
-                    {
-                        <span class="text-muted small">in use</span>
-                    }
-                </div>
-            }
+                </tbody>
+            </table>
             <form asp-action="AddDimensionValue" method="post" class="d-flex gap-1 mt-2">
                 <input type="hidden" name="type" value="Thickness" />
                 <input type="number" name="value" step="0.001" placeholder="e.g. 0.75" class="form-control form-control-sm" style="width:100px" required />

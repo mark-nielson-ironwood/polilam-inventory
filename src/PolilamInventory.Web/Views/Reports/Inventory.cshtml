@@ -50,6 +50,9 @@ else
                     <th class="text-center">Total Committed</th>
                     <th class="text-center">Projected Balance</th>
                     <th>Re-Order?</th>
+                    <th class="text-end">Sheet Value</th>
+                    <th class="text-end">Stock Value</th>
+                    <th class="text-end">On Order Value</th>
                 </tr>
             </thead>
             <tbody>
@@ -79,9 +82,20 @@ else
                                 <span class="text-warning">Re-order may be needed</span>
                             }
                         </td>
+                        <td class="text-end">@(row.SheetValue > 0 ? row.SheetValue.ToString("C2") : "—")</td>
+                        <td class="text-end">@(row.SheetValue > 0 ? row.StockValue.ToString("C0") : "—")</td>
+                        <td class="text-end">@(row.SheetValue > 0 ? row.OnOrderValue.ToString("C0") : "—")</td>
                     </tr>
                 }
             </tbody>
+            <tfoot>
+                <tr class="fw-bold">
+                    <td colspan="12" class="text-end">Grand Total</td>
+                    <td class="text-end">—</td>
+                    <td class="text-end">@Model.Rows.Sum(r => r.StockValue).ToString("C0")</td>
+                    <td class="text-end">@Model.Rows.Sum(r => r.OnOrderValue).ToString("C0")</td>
+                </tr>
+            </tfoot>
         </table>
     </div>
 }

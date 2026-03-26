@@ -39,4 +39,6 @@ public class PullSheetsViewModel
 
     // Mode: "PullNow" or "ScheduleFuture"
     public string Mode { get; set; } = "PullNow";
+
+    public bool IsDrop { get; set; }
 }

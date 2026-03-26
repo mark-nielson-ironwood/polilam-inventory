@@ -61,7 +61,8 @@ public class SettingsController : Controller
                 Id = d.Id,
                 Value = d.Value,
                 MaterialType = d.Value == Size.PlasticLaminateThickness ? "Plastic Laminate" : "Compact Laminate",
-                HasTransactions = usedThicknesses.Contains(d.Value)
+                HasTransactions = usedThicknesses.Contains(d.Value),
+                PricePerSqFt = d.PricePerSqFt
             }).ToList()
         };
 
@@ -151,6 +152,23 @@ public class SettingsController : Controller
         }
 
         _db.DimensionValues.Add(new DimensionValue { Type = type, Value = value });
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateThicknessPrice(int id, decimal? pricePerSqFt)
+    {
+        var dv = await _db.DimensionValues.FindAsync(id);
+        if (dv == null) return NotFound();
+
+        if (dv.Type != "Thickness")
+        {
+            TempData["Error"] = "Price per sq ft can only be set on thickness values.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        dv.PricePerSqFt = pricePerSqFt.HasValue && pricePerSqFt.Value > 0 ? pricePerSqFt.Value : null;
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }

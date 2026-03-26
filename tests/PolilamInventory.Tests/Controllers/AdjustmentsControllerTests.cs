@@ -147,4 +147,39 @@ public class AdjustmentsControllerTests
         Assert.IsType<ViewResult>(result);
         Assert.Equal(0, db.Context.InventoryAdjustments.Count());
     }
+
+    [Fact]
+    public async Task AdjustInventory_WithIsDrop_SavesFlag()
+    {
+        using var db = TestDb.Create();
+        var pattern = db.CreatePattern();
+        db.Context.DimensionValues.AddRange(
+            new DimensionValue { Type = "Width", Value = 60 },
+            new DimensionValue { Type = "Length", Value = 144 },
+            new DimensionValue { Type = "Thickness", Value = 0.75m }
+        );
+        db.Context.SaveChanges();
+
+        var controller = CreateController(db);
+        var model = new AdjustInventoryViewModel
+        {
+            PatternId = pattern.Id,
+            Width = 60,
+            Length = 144,
+            Thickness = 0.75m,
+            Quantity = 3,
+            DateAdded = DateTime.Today,
+            Note = "Drop piece",
+            IsDrop = true
+        };
+
+        var result = await controller.Create(model);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Index", redirect.ActionName);
+        Assert.Equal(1, db.Context.InventoryAdjustments.Count());
+        var adj = db.Context.InventoryAdjustments.First();
+        Assert.True(adj.IsDrop);
+        Assert.Equal(3, adj.Quantity);
+    }
 }

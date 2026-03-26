@@ -10,4 +10,5 @@ public class InventoryAdjustment
     public int Quantity { get; set; }
     public DateTime DateAdded { get; set; }
     public string? Note { get; set; }
+    public bool IsDrop { get; set; }
 }

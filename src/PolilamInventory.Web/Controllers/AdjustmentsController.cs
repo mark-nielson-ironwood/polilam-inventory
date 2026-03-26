@@ -54,7 +54,8 @@ public class AdjustmentsController : Controller
             SizeId = size.Id,
             Quantity = model.Quantity,
             DateAdded = model.DateAdded,
-            Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim()
+            Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim(),
+            IsDrop = model.IsDrop
         });
 
         await _db.SaveChangesAsync();

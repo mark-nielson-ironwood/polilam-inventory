@@ -156,7 +156,8 @@ public class PullsController : Controller
                 Quantity = model.Quantity,
                 ScheduledDate = model.PullDate,
                 SoNumber = model.SoNumber.Trim(),
-                Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim()
+                Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim(),
+                IsDrop = model.IsDrop
             };
             _db.PlannedClaims.Add(claim);
             await _db.SaveChangesAsync();
@@ -189,7 +190,8 @@ public class PullsController : Controller
                 Quantity = model.Quantity,
                 PullDate = model.PullDate,
                 SoNumber = model.SoNumber.Trim(),
-                Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim()
+                Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim(),
+                IsDrop = model.IsDrop
             });
             await _db.SaveChangesAsync();
             return RedirectToAction("Index", "Dashboard");

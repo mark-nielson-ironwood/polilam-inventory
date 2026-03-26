@@ -11,4 +11,5 @@ public class PlannedClaim
     public DateTime ScheduledDate { get; set; }
     public string SoNumber { get; set; } = string.Empty;
     public string? Note { get; set; }
+    public bool IsDrop { get; set; }
 }

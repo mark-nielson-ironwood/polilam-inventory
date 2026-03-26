@@ -23,4 +23,7 @@ public class InventoryReportRow
     public int ProjectedBalance { get; set; }
     public bool NeedsReorder { get; set; }
     public int ReorderTrigger { get; set; }
+    public decimal SheetValue { get; set; }
+    public decimal StockValue { get; set; }
+    public decimal OnOrderValue { get; set; }
 }

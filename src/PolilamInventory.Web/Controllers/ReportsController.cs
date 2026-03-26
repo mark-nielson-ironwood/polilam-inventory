@@ -191,6 +191,20 @@ public class ReportsController : Controller
 
         var allClaims = await _db.PlannedClaims.ToListAsync();
 
+        // Load drop data for value calculations
+        var allDropAdjustments = await _db.InventoryAdjustments
+            .Where(a => a.IsDrop)
+            .ToListAsync();
+        var allDropPulls = await _db.ActualPulls
+            .Where(p => p.IsDrop)
+            .ToListAsync();
+
+        // Load thickness price lookup
+        var thicknessPrices = (await _db.DimensionValues
+            .Where(d => d.Type == "Thickness")
+            .ToListAsync())
+            .ToDictionary(d => d.Value, d => d.PricePerSqFt ?? 0m);
+
         var rows = new List<InventoryReportRow>();
 
         var filteredPatterns = string.IsNullOrWhiteSpace(patternFilter)
@@ -232,6 +246,21 @@ public class ReportsController : Controller
 
                 allDates.TryGetValue((pattern.Id, sizeId), out var lastAdjDate);
 
+                // Calculate drop quantity and dollar values
+                var dropAdded = allDropAdjustments
+                    .Where(a => a.PatternId == pattern.Id && a.SizeId == sizeId)
+                    .Sum(a => a.Quantity);
+                var dropPulled = allDropPulls
+                    .Where(p => p.PatternId == pattern.Id && p.SizeId == sizeId)
+                    .Sum(p => p.Quantity);
+                var dropQty = dropAdded - dropPulled;
+                var purchasedInStock = inStock - dropQty;
+
+                var pricePerSqFt = thicknessPrices.TryGetValue(size.Thickness, out var price) ? price : 0m;
+                var sheetValue = (size.Width * size.Length / 144.0m) * pricePerSqFt;
+                var stockValue = purchasedInStock * sheetValue;
+                var onOrderValue = onOrder * sheetValue;
+
                 rows.Add(new InventoryReportRow
                 {
                     PatternName = pattern.Name,
@@ -246,8 +275,11 @@ public class ReportsController : Controller
                     ProjectedAtArrival = projectedAtArrival,
                     TotalCommitted = totalCommitted,
                     ProjectedBalance = projectedBalance,
-                    NeedsReorder = projectedBalance <= pattern.ReorderTrigger,
-                    ReorderTrigger = pattern.ReorderTrigger
+                    NeedsReorder = (dropQty > 0 && purchasedInStock <= 0 && onOrder == 0) ? false : projectedBalance <= pattern.ReorderTrigger,
+                    ReorderTrigger = pattern.ReorderTrigger,
+                    SheetValue = sheetValue,
+                    StockValue = stockValue,
+                    OnOrderValue = onOrderValue
                 });
             }
         }
@@ -261,6 +293,7 @@ public class ReportsController : Controller
             .Include(p => p.Pattern)
             .Include(p => p.Size)
             .Where(p => p.PullDate >= startDate!.Value && p.PullDate <= endDate!.Value)
+            .Where(p => !p.IsDrop)
             .ToListAsync();
 
         var grouped = pulls
