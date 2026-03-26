@@ -63,7 +63,9 @@ public class SettingsController : Controller
                 MaterialType = d.Value == Size.PlasticLaminateThickness ? "Plastic Laminate" : "Compact Laminate",
                 HasTransactions = usedThicknesses.Contains(d.Value),
                 PricePerSqFt = d.PricePerSqFt
-            }).ToList()
+            }).ToList(),
+
+            AppVersion = FormatVersion()
         };
 
         return View(vm);
@@ -197,5 +199,16 @@ public class SettingsController : Controller
         _db.DimensionValues.Remove(dv);
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
+    }
+
+    private static string FormatVersion()
+    {
+        var sha = Environment.GetEnvironmentVariable("APP_BUILD_SHA");
+        if (!string.IsNullOrEmpty(sha) && sha != "dev")
+        {
+            var shortSha = sha.Length > 7 ? sha[..7] : sha;
+            return $"1.0 (build {shortSha})";
+        }
+        return "1.0 (dev)";
     }
 }

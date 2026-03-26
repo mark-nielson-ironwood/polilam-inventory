@@ -15,6 +15,8 @@ RUN dotnet publish src/PolilamInventory.Web -c Release -o /app/publish --no-rest
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+ARG BUILD_SHA=dev
+ENV APP_BUILD_SHA=$BUILD_SHA
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENTRYPOINT ["dotnet", "PolilamInventory.Web.dll"]
