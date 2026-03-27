@@ -1,4 +1,4 @@
-# Polilam Inventory - User Guide
+# Polilam Inventory - User Guide (v1.1)
 
 ## Overview
 
@@ -31,20 +31,21 @@ Use this when you place a purchase order with Polilam.
 1. Select a **Pattern** from the dropdown
 2. Select **Width**, **Length**, and **Thickness** (width and length default to 60" x 144")
 3. Enter the **Quantity** ordered
-4. Enter the **PO Number** (your purchase order reference)
-5. Set the **ETA Date** (when you expect delivery)
+4. Enter the **Order Date** and **ETA Date**
+5. Enter the **PO Number** (your purchase order reference)
 6. Optionally add a **Note**
-7. Click **Place Order**
+7. Review the **Cost Per Sq Ft** field -- it's auto-filled from the pricing table based on the pattern's category, thickness, and order quantity. Override it if needed (e.g., when combining shipments for a better volume tier).
+8. Click **Place Order**
 
-The system automatically calculates the **cost per sheet** based on the pattern's category (Solid or Woodgrain), the sheet thickness, and the order quantity (which determines the volume pricing tier). This cost is stored on the order and used for inventory valuation.
+The right panel shows current inventory and open orders for the selected pattern, plus the estimated cost per sheet and $/sqft.
 
-The right panel shows current inventory and open orders for the selected pattern, including estimated cost per sheet based on the pricing table.
+**Overriding the price:** If you're placing two orders that will ship together (e.g., 40 + 30 sheets qualifying for the 50-99 tier), you can change the $/sqft field to the combined-volume price. The system will use your override instead of the auto-calculated tier.
 
 ### Orders
 
-A list of all orders, sorted by ETA (most recent first). From here you can:
+A list of all orders, sorted by ETA (most recent first). Shows Cost/Sheet and $/SqFt for each order. From here you can:
 
-- **Edit** -- change the PO number, quantity, ETA, cost per sheet, or note on any order. You cannot reduce the quantity below what's already been received. The cost per sheet can be overridden if you negotiated a different price.
+- **Edit** -- change the PO number, quantity, ETA, cost per sq ft, or note on any order. You cannot reduce the quantity below what's already been received.
 - **Cancel** -- delete an order that has no receipts. If an order has partial receipts, use **Close Out** instead, which sets the ordered quantity to match what was received (effectively closing it).
 - **Status badges** -- "Open" (blue) means sheets are still outstanding; "Filled" (green) means all ordered sheets have been received.
 
@@ -52,13 +53,13 @@ A list of all orders, sorted by ETA (most recent first). From here you can:
 
 Use this when a Polilam delivery arrives.
 
-1. Select an **Open Order** from the dropdown -- this auto-fills the order details (pattern, size, PO#, quantities)
+1. Select an **Open Order** from the dropdown -- this auto-fills the order details (pattern, size, PO#, quantities, cost per sheet and $/sqft)
 2. Enter the **Quantity Received** in this shipment (must not exceed what's outstanding)
 3. Set the **Date Received**
 4. Optionally add a **Note**
 5. Click **Receive Shipment**
 
-The right panel shows receipt history for the selected order, so you can see what's already been received.
+The right panel shows the order's cost per sheet and $/sqft, plus receipt history so you can see what's already been received.
 
 Partial receipts are supported -- if you ordered 10 sheets and receive 6 now, the order stays open with 4 outstanding. When the remaining 4 arrive, receive them against the same order.
 
@@ -88,11 +89,11 @@ For either mode:
 6. Optionally add a **Note**
 7. Click **Pull Sheets** or **Schedule Pull**
 
-The right panel shows the inventory impact -- current stock and what it will be after the pull.
+The right panel shows the inventory impact -- current stock, what it will be after the pull, and the current WAC (cost per sheet and $/sqft) being attributed to this pull.
 
 ### Pulls
 
-A list of all pulls (completed and scheduled). From here you can:
+A list of all pulls (completed and scheduled). Shows Cost/Sheet and $/SqFt for each row (based on current WAC). From here you can:
 
 - **Edit** -- change the quantity, scheduled date, SO#, or note on a scheduled ("Will Pull") entry
 - **Cancel** -- delete a scheduled pull that's no longer needed
@@ -154,13 +155,27 @@ For example, a 60"×144" sheet at $15.20/sqft:
 
 ### Weighted Average Cost (WAC)
 
-The system tracks the **weighted average cost** per sheet for each pattern+size combination. WAC updates automatically as new inventory comes in:
+The system uses **perpetual weighted average costing** to track the value of inventory. The formula is:
 
-- When a shipment is received, the receipt's cost (from its order) is factored into the WAC
-- When inventory is adjusted with a cost, that cost is factored into the WAC
+```
+New WAC = (Sheets On Hand × Current WAC + Incoming Qty × Incoming Cost) ÷ (Sheets On Hand + Incoming Qty)
+```
+
+**How WAC updates:**
+- When a shipment is received, the receipt's cost (from its order) is blended with existing inventory
+- When inventory is adjusted with a cost, that cost is blended in
+- Pulls reduce quantity on hand but do **not** change the WAC
 - Drop material ($0) does not affect the WAC
 
-**Example:** You have 60 sheets at $636/sheet (WAC = $636). You receive 20 more at $690/sheet. New WAC = (60×636 + 20×690) ÷ 80 = $649.50/sheet.
+**When stock is fully depleted:** If you use up all sheets of a pattern+size and then receive new stock at a different price, the WAC resets to the new incoming cost. This ensures old pricing doesn't contaminate the valuation of new inventory.
+
+**Example:**
+1. Start with 20 sheets at $600/sheet (WAC = $600)
+2. Pull 10 sheets (on-hand = 10, WAC stays $600)
+3. Receive 10 sheets at $1,200/sheet
+4. New WAC = (10 × $600 + 10 × $1,200) ÷ 20 = **$900/sheet**
+
+Throughout the app, costs are shown both as **cost per sheet** and **$/sqft** for easy reference.
 
 The Inventory Report uses WAC to calculate stock values.
 
@@ -194,7 +209,7 @@ A snapshot of current inventory across all patterns and sizes. Shows:
 - **Total Committed** -- all scheduled future pulls
 - **Projected Balance** -- stock after all commitments are fulfilled
 - **Re-Order?** -- shows a warning when the projected balance is at or below the reorder trigger (excludes drop-only items)
-- **Sheet Value** -- weighted average cost per sheet (WAC)
+- **Cost/Sheet** -- weighted average cost per sheet (WAC)
 - **Stock Value** -- total value of purchased stock on hand (purchased quantity × WAC; drop = $0)
 - **On Order Value** -- total value of sheets on order (each order's outstanding quantity × its cost per sheet)
 - **Grand Total** -- sum of all stock and on-order values
@@ -256,6 +271,7 @@ The pricing table is pre-loaded with current Polilam rates. You can edit prices,
 - **The Dashboard is your daily starting point** -- check it for alerts and upcoming pulls.
 - **Use the Transactions report to audit** -- if numbers look wrong, the transaction log shows every entry that affected inventory.
 - **Mark drop correctly** -- always check "This is drop" when adding leftover material or pulling drop pieces. This keeps your removal report accurate for billing and your dollar values correct.
-- **Cost per sheet is auto-calculated on orders** -- the system looks up the right price tier based on your order quantity. You can override it on the Edit Order page if needed.
+- **Cost per sheet is auto-calculated on orders** -- the system looks up the right price tier based on your order quantity. Override the $/sqft field if you negotiated a different price or are combining shipments.
 - **Initial inventory needs a price** -- when adding starting inventory via Adjust Inventory, you'll be asked for the $/sqft. Use the appropriate tier from the pricing table.
+- **WAC resets when stock is depleted** -- if you use up all sheets and reorder at a new price, the WAC reflects the new cost, not a blend with old history.
 - **To start fresh** (e.g., new year or after testing), ask your IT team to reset the database. Your patterns, dimension values, and pricing table will be recreated automatically; only transaction history is cleared.
