@@ -36,6 +36,8 @@ else
                     <th class="text-center">Qty Ordered</th>
                     <th class="text-center">Qty Received</th>
                     <th class="text-center">Outstanding</th>
+                    <th class="text-center">Cost/Sheet</th>
+                    <th class="text-center">$/SqFt</th>
                     <th>ETA</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -51,6 +53,12 @@ else
                         <td class="text-center">@order.QuantityOrdered</td>
                         <td class="text-center">@order.QuantityReceived</td>
                         <td class="text-center">@order.QuantityOutstanding</td>
+                        <td class="text-center">@(order.CostPerSheet.HasValue ? order.CostPerSheet.Value.ToString("C2") : "—")</td>
+                        @{
+                            var sqFt = order.Size.Width * order.Size.Length / 144.0m;
+                            var perSqFt = order.CostPerSheet.HasValue && sqFt > 0 ? order.CostPerSheet.Value / sqFt : (decimal?)null;
+                        }
+                        <td class="text-center">@(perSqFt.HasValue ? perSqFt.Value.ToString("C2") : "—")</td>
                         <td>@order.EtaDate.ToString("yyyy-MM-dd")</td>
                         <td>
                             @if (order.IsFilled)

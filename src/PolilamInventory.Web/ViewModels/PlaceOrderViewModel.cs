@@ -38,4 +38,6 @@ public class PlaceOrderViewModel
 
     [MaxLength(500)]
     public string? Note { get; set; }
+
+    public decimal? CostPerSqFt { get; set; }
 }

@@ -25,5 +25,9 @@ public class EditOrderViewModel
     [MaxLength(500)]
     public string? Note { get; set; }
 
-    public decimal? CostPerSheet { get; set; }
+    public decimal? CostPerSqFt { get; set; }
+
+    // Needed for sqft conversion
+    public decimal Width { get; set; }
+    public decimal Length { get; set; }
 }

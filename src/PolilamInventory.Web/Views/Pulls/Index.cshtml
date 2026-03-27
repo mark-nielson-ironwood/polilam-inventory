@@ -34,6 +34,8 @@ else
                     <th>Pattern</th>
                     <th>Size</th>
                     <th class="text-center">Qty</th>
+                    <th class="text-center">Cost/Sheet</th>
+                    <th class="text-center">$/SqFt</th>
                     <th>Date</th>
                     <th>SO#</th>
                     <th>Note</th>
@@ -57,6 +59,8 @@ else
                         <td>@row.PatternName</td>
                         <td>@row.SizeDisplay</td>
                         <td class="text-center">@row.Quantity</td>
+                        <td class="text-center">@(row.CostPerSheet > 0 ? row.CostPerSheet.Value.ToString("C2") : "—")</td>
+                        <td class="text-center">@(row.CostPerSqFt.HasValue ? row.CostPerSqFt.Value.ToString("C2") : "—")</td>
                         <td>@row.Date.ToString("yyyy-MM-dd")</td>
                         <td>@row.SoNumber</td>
                         <td>@row.Note</td>

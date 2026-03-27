@@ -36,6 +36,11 @@ public class ReceiptsController : Controller
 
         if (order == null) return NotFound();
 
+        var sqFt = order.Size.Width * order.Size.Length / 144.0m;
+        var costPerSqFt = order.CostPerSheet.HasValue && sqFt > 0
+            ? Math.Round(order.CostPerSheet.Value / sqFt, 2)
+            : (decimal?)null;
+
         return Json(new
         {
             patternName = order.Pattern.Name,
@@ -44,6 +49,8 @@ public class ReceiptsController : Controller
             quantityReceived = order.QuantityReceived,
             quantityOutstanding = order.QuantityOutstanding,
             eta = order.EtaDate.ToString("MM/dd/yyyy"),
+            costPerSheet = order.CostPerSheet,
+            costPerSqFt,
             receipts = order.Receipts.OrderByDescending(r => r.DateReceived).Select(r => new
             {
                 date = r.DateReceived.ToString("MM/dd/yyyy"),

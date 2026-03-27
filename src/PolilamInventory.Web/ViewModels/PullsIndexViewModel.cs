@@ -16,4 +16,6 @@ public class PullRow
     public string SoNumber { get; set; } = string.Empty;
     public string? Note { get; set; }
     public bool CanEdit { get; set; } // true only for PlannedClaims
+    public decimal? CostPerSheet { get; set; }
+    public decimal? CostPerSqFt { get; set; }
 }

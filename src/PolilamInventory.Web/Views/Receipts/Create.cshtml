@@ -54,9 +54,14 @@
                                 <span class="text-muted">Outstanding:</span>
                                 <span id="detailOutstanding" class="ms-1 text-warning-amber fw-bold"></span>
                             </div>
-                            <div class="col-12">
+                            <div class="col-6">
                                 <span class="text-muted">ETA:</span>
                                 <span id="detailEta" class="ms-1"></span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted">Cost/Sheet:</span>
+                                <span id="detailCostPerSheet" class="ms-1"></span>
+                                <span id="detailCostPerSqFt" class="text-muted ms-1"></span>
                             </div>
                         </div>
                     </div>
@@ -140,6 +145,8 @@
         document.getElementById('detailReceived').textContent = data.quantityReceived;
         document.getElementById('detailOutstanding').textContent = data.quantityOutstanding;
         document.getElementById('detailEta').textContent = data.eta;
+        document.getElementById('detailCostPerSheet').textContent = data.costPerSheet ? '$' + data.costPerSheet.toFixed(2) : '—';
+        document.getElementById('detailCostPerSqFt').textContent = data.costPerSqFt ? '($' + data.costPerSqFt.toFixed(2) + '/sqft)' : '';
         orderDetailsPanel.style.display = 'block';
     }
 

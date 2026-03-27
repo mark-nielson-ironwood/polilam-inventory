@@ -12,4 +12,5 @@ public class InventoryAdjustment
     public string? Note { get; set; }
     public bool IsDrop { get; set; }
     public decimal? CostPerSheet { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

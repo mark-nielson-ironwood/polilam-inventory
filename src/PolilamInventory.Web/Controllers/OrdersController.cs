@@ -56,8 +56,18 @@ public class OrdersController : Controller
 
         var size = await _sizeService.FindOrCreate(model.Width, model.Length, model.Thickness);
 
-        var costPerSheet = await _pricingService.CalculateCostPerSheet(
-            model.PatternId, model.Width, model.Length, model.Thickness, model.QuantityOrdered);
+        // Use user-supplied $/sqft if provided, otherwise auto-calculate
+        decimal? costPerSheet;
+        if (model.CostPerSqFt.HasValue && model.CostPerSqFt.Value > 0)
+        {
+            var sqFt = model.Width * model.Length / 144.0m;
+            costPerSheet = Math.Round(sqFt * model.CostPerSqFt.Value, 2);
+        }
+        else
+        {
+            costPerSheet = await _pricingService.CalculateCostPerSheet(
+                model.PatternId, model.Width, model.Length, model.Thickness, model.QuantityOrdered);
+        }
 
         _db.Orders.Add(new Order
         {
@@ -87,6 +97,11 @@ public class OrdersController : Controller
         if (order == null)
             return NotFound();
 
+        var sqFt = order.Size.Width * order.Size.Length / 144.0m;
+        var costPerSqFt = order.CostPerSheet.HasValue && sqFt > 0
+            ? Math.Round(order.CostPerSheet.Value / sqFt, 2)
+            : (decimal?)null;
+
         var vm = new EditOrderViewModel
         {
             Id = order.Id,
@@ -97,7 +112,9 @@ public class OrdersController : Controller
             QuantityOrdered = order.QuantityOrdered,
             EtaDate = order.EtaDate,
             Note = order.Note,
-            CostPerSheet = order.CostPerSheet
+            CostPerSqFt = costPerSqFt,
+            Width = order.Size.Width,
+            Length = order.Size.Length
         };
 
         return View(vm);
@@ -123,6 +140,8 @@ public class OrdersController : Controller
         model.PatternName = order.Pattern.Name;
         model.SizeDisplay = order.Size.DisplayName;
         model.QuantityReceived = order.QuantityReceived;
+        model.Width = order.Size.Width;
+        model.Length = order.Size.Length;
 
         if (model.QuantityOrdered < order.QuantityReceived)
         {
@@ -135,7 +154,17 @@ public class OrdersController : Controller
         order.QuantityOrdered = model.QuantityOrdered;
         order.EtaDate = model.EtaDate;
         order.Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim();
-        order.CostPerSheet = model.CostPerSheet;
+
+        // Convert $/sqft to cost per sheet
+        if (model.CostPerSqFt.HasValue && model.CostPerSqFt.Value > 0)
+        {
+            var sqFt = order.Size.Width * order.Size.Length / 144.0m;
+            order.CostPerSheet = Math.Round(sqFt * model.CostPerSqFt.Value, 2);
+        }
+        else
+        {
+            order.CostPerSheet = null;
+        }
 
         await _db.SaveChangesAsync();
         TempData["Success"] = $"Order {order.PoNumber} updated.";

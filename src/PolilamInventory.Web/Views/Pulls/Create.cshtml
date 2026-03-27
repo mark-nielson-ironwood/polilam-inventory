@@ -205,10 +205,22 @@
                 html += `<p class="mb-1">Current: <span class="text-healthy">${data.current}</span></p>`;
                 html += `<p class="mb-2">After pull: <span class="${afterCls}">${afterPull}</span></p>`;
 
+                if (data.hasWacHistory && data.wac > 0) {
+                    html += `<hr class="my-2" />`;
+                    html += `<p class="mb-0">Current WAC: <strong>$${data.wac.toFixed(2)}</strong> per sheet`;
+                    if (data.wacPerSqFt > 0) {
+                        html += ` ($${data.wacPerSqFt.toFixed(2)}/sqft)`;
+                    }
+                    html += `</p>`;
+                } else {
+                    html += `<hr class="my-2" />`;
+                    html += `<p class="mb-0 text-muted small">Current WAC: —</p>`;
+                }
+
                 if (afterPull < 0 && mode === 'PullNow') {
-                    html += `<div class="alert alert-danger py-2 small">Insufficient inventory — cannot pull ${Math.abs(afterPull)} more than available.</div>`;
+                    html += `<div class="alert alert-danger py-2 small mt-2">Insufficient inventory — cannot pull ${Math.abs(afterPull)} more than available.</div>`;
                 } else if (afterPull < 0 && mode === 'ScheduleFuture') {
-                    html += `<div class="alert alert-warning py-2 small">Warning: this scheduled pull would result in a deficit of ${Math.abs(afterPull)} sheets.</div>`;
+                    html += `<div class="alert alert-warning py-2 small mt-2">Warning: this scheduled pull would result in a deficit of ${Math.abs(afterPull)} sheets.</div>`;
                 }
 
                 panel.innerHTML = html;

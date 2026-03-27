@@ -12,4 +12,5 @@ public class ActualPull
     public string SoNumber { get; set; } = string.Empty;
     public string? Note { get; set; }
     public bool IsDrop { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

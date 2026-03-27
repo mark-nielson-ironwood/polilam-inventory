@@ -8,4 +8,5 @@ public class Receipt
     public int QuantityReceived { get; set; }
     public DateTime DateReceived { get; set; }
     public string? Note { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

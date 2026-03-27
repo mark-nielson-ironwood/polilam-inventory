@@ -16,7 +16,8 @@ public class PullsControllerTests
     {
         var inventoryService = new InventoryService(db.Context);
         var sizeService = new SizeService(db.Context);
-        var controller = new PullsController(db.Context, inventoryService, sizeService);
+        var pricingService = new PricingService(db.Context);
+        var controller = new PullsController(db.Context, inventoryService, sizeService, pricingService);
 
         var td = tempData ?? new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>());
         controller.TempData = td;

@@ -10,14 +10,14 @@ namespace PolilamInventory.Tests.Services;
 public class PricingServiceTests
 {
     [Fact]
-    public async Task WAC_CalculatesFromReceiptsAndAdjustments()
+    public async Task WAC_PerpetualCalculation()
     {
         using var db = TestDb.Create();
         var pattern = db.CreatePattern(name: "Espresso", reorderTrigger: 5);
         var size = db.CreateSize(width: 60, length: 144, thickness: 0.75m);
         var service = new PricingService(db.Context);
 
-        // Receipt 1: 10 sheets at $500/sheet (via order)
+        // Day 1: Receipt of 10 sheets at $500/sheet
         var order1 = new Order
         {
             PatternId = pattern.Id, SizeId = size.Id, QuantityOrdered = 10,
@@ -26,9 +26,9 @@ public class PricingServiceTests
         };
         db.Context.Orders.Add(order1);
         db.Context.SaveChanges();
-        db.Context.Receipts.Add(new Receipt { OrderId = order1.Id, QuantityReceived = 10, DateReceived = DateTime.Today.AddDays(-15) });
+        db.Context.Receipts.Add(new Receipt { OrderId = order1.Id, QuantityReceived = 10, DateReceived = DateTime.Today.AddDays(-15), CreatedAt = DateTime.UtcNow.AddHours(-10) });
 
-        // Receipt 2: 20 sheets at $400/sheet (via order)
+        // Day 2: Receipt of 20 sheets at $400/sheet
         var order2 = new Order
         {
             PatternId = pattern.Id, SizeId = size.Id, QuantityOrdered = 20,
@@ -37,13 +37,14 @@ public class PricingServiceTests
         };
         db.Context.Orders.Add(order2);
         db.Context.SaveChanges();
-        db.Context.Receipts.Add(new Receipt { OrderId = order2.Id, QuantityReceived = 20, DateReceived = DateTime.Today.AddDays(-5) });
+        db.Context.Receipts.Add(new Receipt { OrderId = order2.Id, QuantityReceived = 20, DateReceived = DateTime.Today.AddDays(-5), CreatedAt = DateTime.UtcNow.AddHours(-5) });
 
-        // Adjustment: 5 sheets at $450/sheet
+        // Day 3: Adjustment of 5 sheets at $450/sheet
         db.Context.InventoryAdjustments.Add(new InventoryAdjustment
         {
             PatternId = pattern.Id, SizeId = size.Id, Quantity = 5,
-            DateAdded = DateTime.Today, CostPerSheet = 450m, IsDrop = false
+            DateAdded = DateTime.Today, CostPerSheet = 450m, IsDrop = false,
+            CreatedAt = DateTime.UtcNow.AddHours(-1)
         });
 
         db.Context.SaveChanges();
@@ -51,9 +52,59 @@ public class PricingServiceTests
         var (wac, hasHistory) = await service.GetWeightedAverageCost(pattern.Id, size.Id);
 
         Assert.True(hasHistory);
-        // WAC = (10*500 + 20*400 + 5*450) / (10+20+5) = (5000+8000+2250) / 35 = 15250/35 = 435.714...
-        var expected = 15250m / 35m;
+        // Perpetual WAC:
+        // After receipt 1: onHand=10, WAC = 500
+        // After receipt 2: WAC = (10*500 + 20*400) / 30 = 13000/30 = 433.33...
+        // After adjustment: WAC = (30*433.33 + 5*450) / 35 = (13000+2250) / 35 = 435.714...
+        var expected = Math.Round(15250m / 35m, 2);
         Assert.Equal(expected, wac);
+    }
+
+    [Fact]
+    public async Task WAC_ResetsWhenStockHitsZero()
+    {
+        using var db = TestDb.Create();
+        var pattern = db.CreatePattern(name: "Espresso", reorderTrigger: 5);
+        var size = db.CreateSize(width: 60, length: 144, thickness: 0.75m);
+        var service = new PricingService(db.Context);
+
+        // Day 1: Receive 10 sheets at $500/sheet
+        var order1 = new Order
+        {
+            PatternId = pattern.Id, SizeId = size.Id, QuantityOrdered = 10,
+            OrderDate = DateTime.Today.AddDays(-30), EtaDate = DateTime.Today.AddDays(-20),
+            PoNumber = "PO1", CostPerSheet = 500m
+        };
+        db.Context.Orders.Add(order1);
+        db.Context.SaveChanges();
+        db.Context.Receipts.Add(new Receipt { OrderId = order1.Id, QuantityReceived = 10, DateReceived = DateTime.Today.AddDays(-20), CreatedAt = DateTime.UtcNow.AddHours(-10) });
+
+        // Day 2: Pull all 10 sheets (stock goes to zero)
+        db.Context.ActualPulls.Add(new ActualPull
+        {
+            PatternId = pattern.Id, SizeId = size.Id, Quantity = 10,
+            PullDate = DateTime.Today.AddDays(-10), SoNumber = "SO1", IsDrop = false,
+            CreatedAt = DateTime.UtcNow.AddHours(-5)
+        });
+
+        // Day 3: Receive 5 sheets at $900/sheet (new price)
+        var order2 = new Order
+        {
+            PatternId = pattern.Id, SizeId = size.Id, QuantityOrdered = 5,
+            OrderDate = DateTime.Today.AddDays(-8), EtaDate = DateTime.Today.AddDays(-3),
+            PoNumber = "PO2", CostPerSheet = 900m
+        };
+        db.Context.Orders.Add(order2);
+        db.Context.SaveChanges();
+        db.Context.Receipts.Add(new Receipt { OrderId = order2.Id, QuantityReceived = 5, DateReceived = DateTime.Today.AddDays(-3), CreatedAt = DateTime.UtcNow.AddHours(-1) });
+
+        db.Context.SaveChanges();
+
+        var (wac, hasHistory) = await service.GetWeightedAverageCost(pattern.Id, size.Id);
+
+        Assert.True(hasHistory);
+        // Stock was zeroed out, then new stock at $900 — WAC should be $900, not blended with old $500
+        Assert.Equal(900m, wac);
     }
 
     [Fact]
@@ -68,14 +119,16 @@ public class PricingServiceTests
         db.Context.InventoryAdjustments.Add(new InventoryAdjustment
         {
             PatternId = pattern.Id, SizeId = size.Id, Quantity = 10,
-            DateAdded = DateTime.Today, CostPerSheet = 500m, IsDrop = false
+            DateAdded = DateTime.Today, CostPerSheet = 500m, IsDrop = false,
+            CreatedAt = DateTime.UtcNow.AddHours(-10)
         });
 
         // Drop adjustment: 5 sheets at $300 (should be excluded)
         db.Context.InventoryAdjustments.Add(new InventoryAdjustment
         {
             PatternId = pattern.Id, SizeId = size.Id, Quantity = 5,
-            DateAdded = DateTime.Today, CostPerSheet = 300m, IsDrop = true
+            DateAdded = DateTime.Today, CostPerSheet = 300m, IsDrop = true,
+            CreatedAt = DateTime.UtcNow.AddHours(-5)
         });
 
         db.Context.SaveChanges();
@@ -140,7 +193,8 @@ public class PricingServiceTests
         db.Context.InventoryAdjustments.Add(new InventoryAdjustment
         {
             PatternId = pattern.Id, SizeId = size.Id, Quantity = 10,
-            DateAdded = DateTime.Today, IsDrop = false, CostPerSheet = 600m
+            DateAdded = DateTime.Today, IsDrop = false, CostPerSheet = 600m,
+            CreatedAt = DateTime.UtcNow.AddHours(-10)
         });
         db.Context.SaveChanges();
 

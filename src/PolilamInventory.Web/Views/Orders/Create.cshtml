@@ -82,6 +82,12 @@
                     <input type="text" name="note" class="form-control" />
                 </div>
 
+                <div class="mb-3" id="costPerSqFtGroup" style="display:none">
+                    <label class="form-label">Cost Per Sq Ft <span class="text-muted">(auto-filled from pricing table — override if needed)</span></label>
+                    <input type="number" name="CostPerSqFt" id="costPerSqFtInput" class="form-control"
+                           step="0.01" min="0" placeholder="$/sqft" />
+                </div>
+
                 <button type="submit" class="btn btn-submit-green w-100">Place Order</button>
             </form>
         </div>
@@ -107,6 +113,8 @@
     var quantityInput   = document.getElementById('quantityInput');
     var contextPanel    = document.getElementById('contextPanel');
     var pricingPanel    = document.getElementById('pricingPanel');
+    var costPerSqFtGroup = document.getElementById('costPerSqFtGroup');
+    var costPerSqFtInput = document.getElementById('costPerSqFtInput');
 
     function updateContext() {
         var patternId = patternSelect.value;
@@ -178,10 +186,13 @@
                 if (data.costPerSheet) {
                     pricingPanel.style.display = 'block';
                     pricingPanel.innerHTML = '<h6 class="mb-2">Estimated Cost</h6>'
-                        + '<p class="mb-0">Cost per sheet: <span class="fw-bold text-healthy">$' + data.costPerSheet + '</span></p>'
+                        + '<p class="mb-0">Cost per sheet: <span class="fw-bold text-healthy">$' + data.costPerSheet + '</span> ($' + data.costPerSqFt + '/sqft)</p>'
                         + '<p class="text-muted small mb-0">Total: $' + (parseFloat(data.costPerSheet) * parseInt(quantity)).toFixed(2) + '</p>';
+                    costPerSqFtGroup.style.display = 'block';
+                    costPerSqFtInput.value = data.costPerSqFt;
                 } else {
                     pricingPanel.style.display = 'none';
+                    costPerSqFtGroup.style.display = 'none';
                 }
             })
             .catch(function () {

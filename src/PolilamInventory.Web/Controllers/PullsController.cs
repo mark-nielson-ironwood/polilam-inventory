@@ -12,12 +12,14 @@ public class PullsController : Controller
     private readonly AppDbContext _db;
     private readonly InventoryService _inventoryService;
     private readonly SizeService _sizeService;
+    private readonly PricingService _pricingService;
 
-    public PullsController(AppDbContext db, InventoryService inventoryService, SizeService sizeService)
+    public PullsController(AppDbContext db, InventoryService inventoryService, SizeService sizeService, PricingService pricingService)
     {
         _db = db;
         _inventoryService = inventoryService;
         _sizeService = sizeService;
+        _pricingService = pricingService;
     }
 
     [HttpGet]
@@ -33,6 +35,25 @@ public class PullsController : Controller
             .Include(c => c.Size)
             .ToListAsync();
 
+        // Collect unique pattern+size combos and compute WAC for each
+        var combos = actualPulls.Select(p => (p.PatternId, p.SizeId))
+            .Concat(plannedClaims.Select(c => (c.PatternId, c.SizeId)))
+            .Distinct()
+            .ToList();
+
+        var wacLookup = new Dictionary<(int, int), decimal>();
+        foreach (var (patternId, sizeId) in combos)
+        {
+            var (wac, _) = await _pricingService.GetWeightedAverageCost(patternId, sizeId);
+            wacLookup[(patternId, sizeId)] = wac;
+        }
+
+        decimal? toSqFt(decimal wac, Models.Size size)
+        {
+            var sqFt = size.Width * size.Length / 144.0m;
+            return wac > 0 && sqFt > 0 ? Math.Round(wac / sqFt, 2) : null;
+        }
+
         var rows = actualPulls.Select(p => new PullRow
         {
             Id = p.Id,
@@ -43,7 +64,9 @@ public class PullsController : Controller
             Date = p.PullDate,
             SoNumber = p.SoNumber,
             Note = p.Note,
-            CanEdit = false
+            CanEdit = false,
+            CostPerSheet = wacLookup.GetValueOrDefault((p.PatternId, p.SizeId)),
+            CostPerSqFt = toSqFt(wacLookup.GetValueOrDefault((p.PatternId, p.SizeId)), p.Size)
         })
         .Concat(plannedClaims.Select(c => new PullRow
         {
@@ -55,7 +78,9 @@ public class PullsController : Controller
             Date = c.ScheduledDate,
             SoNumber = c.SoNumber,
             Note = c.Note,
-            CanEdit = true
+            CanEdit = true,
+            CostPerSheet = wacLookup.GetValueOrDefault((c.PatternId, c.SizeId)),
+            CostPerSqFt = toSqFt(wacLookup.GetValueOrDefault((c.PatternId, c.SizeId)), c.Size)
         }))
         .OrderByDescending(r => r.Date)
         .ToList();
@@ -203,7 +228,10 @@ public class PullsController : Controller
     {
         var size = await _sizeService.FindOrCreate(width, length, thickness);
         var current = await _inventoryService.GetCurrentInventory(patternId, size.Id);
-        return Json(new { current, afterPull = current - quantity });
+        var (wac, hasHistory) = await _pricingService.GetWeightedAverageCost(patternId, size.Id);
+        var sqFt = width * length / 144.0m;
+        var wacPerSqFt = sqFt > 0 ? Math.Round(wac / sqFt, 2) : 0m;
+        return Json(new { current, afterPull = current - quantity, wac = Math.Round(wac, 2), wacPerSqFt, hasWacHistory = hasHistory });
     }
 
     private async Task<PullSheetsViewModel> BuildViewModel()

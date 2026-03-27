@@ -56,11 +56,13 @@
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="CostPerSheet" class="form-label">Cost Per Sheet <span class="text-muted">(optional override)</span></label>
-                    <input asp-for="CostPerSheet" class="form-control" type="number" step="0.01" min="0"
-                           value="@(Model.CostPerSheet?.ToString("F2") ?? "")" placeholder="Auto-calculated" />
-                    <span asp-validation-for="CostPerSheet" class="text-danger"></span>
+                    <label asp-for="CostPerSqFt" class="form-label">Cost Per Sq Ft <span class="text-muted">(override if needed)</span></label>
+                    <input asp-for="CostPerSqFt" class="form-control" type="number" step="0.01" min="0"
+                           value="@(Model.CostPerSqFt?.ToString("F2") ?? "")" placeholder="$/sqft" />
+                    <span asp-validation-for="CostPerSqFt" class="text-danger"></span>
                 </div>
+                <input type="hidden" asp-for="Width" />
+                <input type="hidden" asp-for="Length" />
 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-submit-green flex-grow-1">Save Changes</button>

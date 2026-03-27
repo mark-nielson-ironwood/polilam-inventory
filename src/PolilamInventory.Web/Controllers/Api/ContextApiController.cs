@@ -90,6 +90,11 @@ public class ContextApiController : ControllerBase
     public async Task<IActionResult> GetPricing(int patternId, decimal width, decimal length, decimal thickness, int quantity)
     {
         var costPerSheet = await _pricingService.CalculateCostPerSheet(patternId, width, length, thickness, quantity);
-        return Ok(new { costPerSheet = costPerSheet?.ToString("F2") });
+        var sqFt = width * length / 144.0m;
+        var costPerSqFt = costPerSheet.HasValue && sqFt > 0 ? costPerSheet.Value / sqFt : (decimal?)null;
+        return Ok(new {
+            costPerSheet = costPerSheet?.ToString("F2"),
+            costPerSqFt = costPerSqFt?.ToString("F2")
+        });
     }
 }
