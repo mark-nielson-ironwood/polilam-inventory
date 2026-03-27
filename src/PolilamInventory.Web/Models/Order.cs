@@ -13,6 +13,8 @@ public class Order
     public string PoNumber { get; set; } = string.Empty;
     public string? Note { get; set; }
 
+    public decimal? CostPerSheet { get; set; }
+
     public List<Receipt> Receipts { get; set; } = new();
 
     public int QuantityReceived => Receipts.Sum(r => r.QuantityReceived);

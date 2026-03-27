@@ -11,12 +11,14 @@ public class ReportsController : Controller
     private readonly AppDbContext _db;
     private readonly InventoryService _inventoryService;
     private readonly ReportExportService _exportService;
+    private readonly PricingService _pricingService;
 
-    public ReportsController(AppDbContext db, InventoryService inventoryService, ReportExportService exportService)
+    public ReportsController(AppDbContext db, InventoryService inventoryService, ReportExportService exportService, PricingService pricingService)
     {
         _db = db;
         _inventoryService = inventoryService;
         _exportService = exportService;
+        _pricingService = pricingService;
     }
 
     // ─── Display actions ──────────────────────────────────────────────────
@@ -199,12 +201,6 @@ public class ReportsController : Controller
             .Where(p => p.IsDrop)
             .ToListAsync();
 
-        // Load thickness price lookup
-        var thicknessPrices = (await _db.DimensionValues
-            .Where(d => d.Type == "Thickness")
-            .ToListAsync())
-            .ToDictionary(d => d.Value, d => d.PricePerSqFt ?? 0m);
-
         var rows = new List<InventoryReportRow>();
 
         var filteredPatterns = string.IsNullOrWhiteSpace(patternFilter)
@@ -256,10 +252,14 @@ public class ReportsController : Controller
                 var dropQty = dropAdded - dropPulled;
                 var purchasedInStock = inStock - dropQty;
 
-                var pricePerSqFt = thicknessPrices.TryGetValue(size.Thickness, out var price) ? price : 0m;
-                var sheetValue = (size.Width * size.Length / 144.0m) * pricePerSqFt;
-                var stockValue = purchasedInStock * sheetValue;
-                var onOrderValue = onOrder * sheetValue;
+                var (wac, _) = await _pricingService.GetWeightedAverageCost(pattern.Id, sizeId);
+                var sheetValue = wac;
+                var stockValue = purchasedInStock * wac;
+
+                // On Order Value: sum each open order's QuantityOutstanding * CostPerSheet
+                var onOrderValue = patternOpenOrders
+                    .Where(o => o.CostPerSheet.HasValue)
+                    .Sum(o => o.QuantityOutstanding * o.CostPerSheet!.Value);
 
                 rows.Add(new InventoryReportRow
                 {

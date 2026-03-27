@@ -86,6 +86,13 @@
                     </label>
                 </div>
 
+                <div class="mb-3" id="costPerSheetGroup" style="display:none">
+                    <label class="form-label" id="costPerSheetLabel">Price Per Sq Ft</label>
+                    <input type="number" name="CostPerSheet" id="costPerSheetInput" class="form-control"
+                           step="0.01" min="0" placeholder="$/sqft" />
+                    <span asp-validation-for="CostPerSheet" class="text-danger small"></span>
+                </div>
+
                 <button type="submit" class="btn btn-primary w-100">Save Adjustment</button>
             </form>
         </div>
@@ -102,19 +109,47 @@
 @section Scripts {
 <script>
 (function () {
-    var patternSelect   = document.getElementById('patternSelect');
-    var widthSelect     = document.getElementById('widthSelect');
-    var lengthSelect    = document.getElementById('lengthSelect');
-    var thicknessSelect = document.getElementById('thicknessSelect');
-    var quantityInput   = document.getElementById('quantityInput');
-    var panel           = document.getElementById('contextPanel');
+    var patternSelect    = document.getElementById('patternSelect');
+    var widthSelect      = document.getElementById('widthSelect');
+    var lengthSelect     = document.getElementById('lengthSelect');
+    var thicknessSelect  = document.getElementById('thicknessSelect');
+    var quantityInput    = document.getElementById('quantityInput');
+    var panel            = document.getElementById('contextPanel');
+    var isDropCheck      = document.getElementById('isDropCheck');
+    var costGroup        = document.getElementById('costPerSheetGroup');
+    var costInput        = document.getElementById('costPerSheetInput');
+    var costLabel        = document.getElementById('costPerSheetLabel');
 
     var currentInventory = null;
+    var currentWac = 0;
+    var currentWacPerSqFt = 0;
+    var hasWacHistory = false;
 
     function colorClass(n) {
         if (n > 0) return 'text-healthy';
         if (n === 0) return 'text-warning';
         return 'text-negative';
+    }
+
+    function updateCostVisibility() {
+        if (isDropCheck.checked) {
+            costGroup.style.display = 'none';
+            costInput.removeAttribute('required');
+            costInput.value = '';
+        } else {
+            costGroup.style.display = 'block';
+            if (!hasWacHistory) {
+                costLabel.textContent = 'Price Per Sq Ft (required \u2014 no prior cost data)';
+                costInput.setAttribute('required', 'required');
+                costInput.value = '';
+            } else {
+                costLabel.textContent = 'Price Per Sq Ft (defaults to current WAC: $' + currentWacPerSqFt.toFixed(2) + '/sqft)';
+                costInput.removeAttribute('required');
+                if (!costInput.value) {
+                    costInput.value = currentWacPerSqFt.toFixed(2);
+                }
+            }
+        }
     }
 
     function updatePanel() {
@@ -125,28 +160,42 @@
 
         if (!patternId || !width || !length || !thickness) {
             currentInventory = null;
+            currentWac = 0;
+            hasWacHistory = false;
             panel.innerHTML = '<p class="text-muted">Select a pattern and size to see current inventory.</p>';
+            updateCostVisibility();
             return;
         }
 
         panel.innerHTML = '<p class="text-muted">Loading...</p>';
 
-        fetch('/Adjustments/GetCurrentInventory?patternId=' + encodeURIComponent(patternId)
+        var inventoryUrl = '/Adjustments/GetCurrentInventory?patternId=' + encodeURIComponent(patternId)
             + '&width=' + encodeURIComponent(width)
             + '&length=' + encodeURIComponent(length)
-            + '&thickness=' + encodeURIComponent(thickness))
-            .then(function (r) {
-                if (!r.ok) throw new Error('API error');
-                return r.json();
-            })
-            .then(function (data) {
-                currentInventory = data.current;
-                renderPanel();
-            })
-            .catch(function () {
-                currentInventory = null;
-                panel.innerHTML = '<p class="text-danger small">Failed to load inventory.</p>';
-            });
+            + '&thickness=' + encodeURIComponent(thickness);
+
+        var wacUrl = '/Adjustments/GetWAC?patternId=' + encodeURIComponent(patternId)
+            + '&width=' + encodeURIComponent(width)
+            + '&length=' + encodeURIComponent(length)
+            + '&thickness=' + encodeURIComponent(thickness);
+
+        Promise.all([
+            fetch(inventoryUrl).then(function (r) { return r.json(); }),
+            fetch(wacUrl).then(function (r) { return r.json(); })
+        ]).then(function (results) {
+            currentInventory = results[0].current;
+            currentWac = results[1].wac;
+            currentWacPerSqFt = results[1].wacPerSqFt;
+            hasWacHistory = results[1].hasHistory;
+            renderPanel();
+            updateCostVisibility();
+        }).catch(function () {
+            currentInventory = null;
+            currentWac = 0;
+            hasWacHistory = false;
+            panel.innerHTML = '<p class="text-danger small">Failed to load inventory.</p>';
+            updateCostVisibility();
+        });
     }
 
     function renderPanel() {
@@ -155,6 +204,12 @@
         var qty = parseInt(quantityInput.value, 10);
         var html = '<p class="mb-1">Current inventory: <span class="' + colorClass(currentInventory) + ' fw-bold">'
             + currentInventory + ' sheets</span></p>';
+
+        if (hasWacHistory) {
+            html += '<p class="mb-1">Current WAC: <span class="fw-bold">$' + currentWac.toFixed(2) + '</span> per sheet (<span class="fw-bold">$' + currentWacPerSqFt.toFixed(2) + '</span>/sqft)</p>';
+        } else {
+            html += '<p class="mb-1 text-muted">No prior cost data for this combination.</p>';
+        }
 
         if (!isNaN(qty) && quantityInput.value !== '') {
             var after = currentInventory + qty;
@@ -169,12 +224,16 @@
     widthSelect.addEventListener('change', updatePanel);
     lengthSelect.addEventListener('change', updatePanel);
     thicknessSelect.addEventListener('change', updatePanel);
+    isDropCheck.addEventListener('change', updateCostVisibility);
 
     quantityInput.addEventListener('input', function () {
         if (currentInventory !== null) {
             renderPanel();
         }
     });
+
+    // Initialize
+    updateCostVisibility();
 }());
 </script>
 }

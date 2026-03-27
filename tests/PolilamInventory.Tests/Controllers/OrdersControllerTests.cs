@@ -22,7 +22,7 @@ public class OrdersControllerTests
         db.Context.DimensionValues.Add(new DimensionValue { Type = "Thickness", Value = 0.75m });
         db.Context.SaveChanges();
 
-        var controller = new OrdersController(db.Context, new SizeService(db.Context));
+        var controller = new OrdersController(db.Context, new SizeService(db.Context), new PricingService(db.Context));
         var model = new PlaceOrderViewModel
         {
             PatternId = pattern.Id,
@@ -57,7 +57,7 @@ public class OrdersControllerTests
         );
         db.Context.SaveChanges();
 
-        var controller = new OrdersController(db.Context, new SizeService(db.Context));
+        var controller = new OrdersController(db.Context, new SizeService(db.Context), new PricingService(db.Context));
         var model = new PlaceOrderViewModel
         {
             PatternId = pattern.Id,
@@ -86,7 +86,7 @@ public class OrdersControllerTests
         );
         db.Context.SaveChanges();
 
-        var controller = new OrdersController(db.Context, new SizeService(db.Context));
+        var controller = new OrdersController(db.Context, new SizeService(db.Context), new PricingService(db.Context));
         controller.ModelState.AddModelError("PoNumber", "PO Number is required.");
 
         var model = new PlaceOrderViewModel
@@ -107,7 +107,7 @@ public class OrdersControllerTests
 
     private static OrdersController CreateControllerWithTempData(TestDb db)
     {
-        var controller = new OrdersController(db.Context, new SizeService(db.Context));
+        var controller = new OrdersController(db.Context, new SizeService(db.Context), new PricingService(db.Context));
         controller.TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>());
         return controller;
     }

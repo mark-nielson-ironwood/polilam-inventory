@@ -39,6 +39,7 @@ public class SettingsController : Controller
                 Id = p.Id,
                 Name = p.Name,
                 ReorderTrigger = p.ReorderTrigger,
+                Category = p.Category,
                 HasTransactions = patternsWithTransactions.Contains(p.Id)
             }).ToList(),
 
@@ -61,9 +62,13 @@ public class SettingsController : Controller
                 Id = d.Id,
                 Value = d.Value,
                 MaterialType = d.Value == Size.PlasticLaminateThickness ? "Plastic Laminate" : "Compact Laminate",
-                HasTransactions = usedThicknesses.Contains(d.Value),
-                PricePerSqFt = d.PricePerSqFt
+                HasTransactions = usedThicknesses.Contains(d.Value)
             }).ToList(),
+
+            SheetPricings = (await _db.SheetPricings.ToListAsync())
+                .OrderBy(sp => sp.Category == "Solid" ? 0 : 1)
+                .ThenBy(sp => sp.Thickness)
+                .ToList(),
 
             AppVersion = FormatVersion()
         };
@@ -72,7 +77,7 @@ public class SettingsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> AddPattern(string name, int reorderTrigger)
+    public async Task<IActionResult> AddPattern(string name, int reorderTrigger, string category)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -86,13 +91,14 @@ public class SettingsController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        _db.Patterns.Add(new Pattern { Name = name.Trim(), ReorderTrigger = reorderTrigger > 0 ? reorderTrigger : 5 });
+        var validCategory = category == "Woodgrain" ? "Woodgrain" : "Solid";
+        _db.Patterns.Add(new Pattern { Name = name.Trim(), ReorderTrigger = reorderTrigger > 0 ? reorderTrigger : 5, Category = validCategory });
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
-    public async Task<IActionResult> EditPattern(int id, string name, int reorderTrigger)
+    public async Task<IActionResult> EditPattern(int id, string name, int reorderTrigger, string category)
     {
         var pattern = await _db.Patterns.FindAsync(id);
         if (pattern == null) return NotFound();
@@ -111,6 +117,7 @@ public class SettingsController : Controller
 
         pattern.Name = name.Trim();
         pattern.ReorderTrigger = reorderTrigger > 0 ? reorderTrigger : 5;
+        pattern.Category = category == "Woodgrain" ? "Woodgrain" : "Solid";
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
@@ -159,23 +166,6 @@ public class SettingsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> UpdateThicknessPrice(int id, decimal? pricePerSqFt)
-    {
-        var dv = await _db.DimensionValues.FindAsync(id);
-        if (dv == null) return NotFound();
-
-        if (dv.Type != "Thickness")
-        {
-            TempData["Error"] = "Price per sq ft can only be set on thickness values.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        dv.PricePerSqFt = pricePerSqFt.HasValue && pricePerSqFt.Value > 0 ? pricePerSqFt.Value : null;
-        await _db.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
-    }
-
-    [HttpPost]
     public async Task<IActionResult> DeleteDimensionValue(int id)
     {
         var dv = await _db.DimensionValues.FindAsync(id);
@@ -197,6 +187,55 @@ public class SettingsController : Controller
         }
 
         _db.DimensionValues.Remove(dv);
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> AddSheetPricing(string category, decimal thickness, decimal tier1Price, decimal tier2Price, decimal tier3Price)
+    {
+        var validCategory = category == "Woodgrain" ? "Woodgrain" : "Solid";
+        var existing = (await _db.SheetPricings.ToListAsync())
+            .Any(sp => sp.Category == validCategory && sp.Thickness == thickness);
+
+        if (existing)
+        {
+            TempData["Error"] = $"Sheet pricing for {validCategory} at thickness {thickness} already exists.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        _db.SheetPricings.Add(new SheetPricing
+        {
+            Category = validCategory,
+            Thickness = thickness,
+            Tier1Price = tier1Price,
+            Tier2Price = tier2Price,
+            Tier3Price = tier3Price
+        });
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateSheetPricing(int id, decimal tier1Price, decimal tier2Price, decimal tier3Price)
+    {
+        var pricing = await _db.SheetPricings.FindAsync(id);
+        if (pricing == null) return NotFound();
+
+        pricing.Tier1Price = tier1Price;
+        pricing.Tier2Price = tier2Price;
+        pricing.Tier3Price = tier3Price;
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> DeleteSheetPricing(int id)
+    {
+        var pricing = await _db.SheetPricings.FindAsync(id);
+        if (pricing == null) return NotFound();
+
+        _db.SheetPricings.Remove(pricing);
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }

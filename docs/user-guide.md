@@ -36,13 +36,15 @@ Use this when you place a purchase order with Polilam.
 6. Optionally add a **Note**
 7. Click **Place Order**
 
-The right panel shows current inventory and open orders for the selected pattern, so you can see what's already on hand and on order before placing a new order.
+The system automatically calculates the **cost per sheet** based on the pattern's category (Solid or Woodgrain), the sheet thickness, and the order quantity (which determines the volume pricing tier). This cost is stored on the order and used for inventory valuation.
+
+The right panel shows current inventory and open orders for the selected pattern, including estimated cost per sheet based on the pricing table.
 
 ### Orders
 
 A list of all orders, sorted by ETA (most recent first). From here you can:
 
-- **Edit** -- change the PO number, quantity, ETA, or note on any order. You cannot reduce the quantity below what's already been received.
+- **Edit** -- change the PO number, quantity, ETA, cost per sheet, or note on any order. You cannot reduce the quantity below what's already been received. The cost per sheet can be overridden if you negotiated a different price.
 - **Cancel** -- delete an order that has no receipts. If an order has partial receipts, use **Close Out** instead, which sets the ordered quantity to match what was received (effectively closing it).
 - **Status badges** -- "Open" (blue) means sheets are still outstanding; "Filled" (green) means all ordered sheets have been received.
 
@@ -59,6 +61,8 @@ Use this when a Polilam delivery arrives.
 The right panel shows receipt history for the selected order, so you can see what's already been received.
 
 Partial receipts are supported -- if you ordered 10 sheets and receive 6 now, the order stays open with 4 outstanding. When the remaining 4 arrive, receive them against the same order.
+
+Each receipt inherits the cost per sheet from its order, which feeds into the weighted average cost calculation.
 
 ### Pull Sheets
 
@@ -101,23 +105,70 @@ Use this for initial stock setup, manual corrections, or adding drop material.
 1. Select **Pattern**, **Width**, **Length**, **Thickness**
 2. Enter **Quantity** -- positive to add stock, negative to remove/correct
 3. Check **This is drop** if the material is leftover from a previous job (see Drop section below)
-4. Set the **Date**
-5. Optionally add a **Note** explaining the adjustment
-6. Click **Save Adjustment**
+4. If not drop, enter the **Price Per Sq Ft** for these sheets (see Pricing section below)
+5. Set the **Date**
+6. Optionally add a **Note** explaining the adjustment
+7. Click **Save Adjustment**
+
+**Price Per Sq Ft behavior:**
+- When there's no prior cost data for this pattern+size, the field is **required** -- you must enter the $/sqft so the system knows what these sheets are worth.
+- When there is prior cost data, the field **defaults to the current weighted average cost** (shown as $/sqft). You can accept the default or override it.
+- When "This is drop" is checked, the field is hidden (drop = $0).
+
+The right panel shows current inventory, the current WAC (both per sheet and per sqft), and the projected count after your adjustment.
 
 Common uses:
-- **Initial setup** -- when first starting the app, use positive quantities to enter your current stock levels
+- **Initial setup** -- when first starting the app, use positive quantities to enter your current stock levels. Enter the $/sqft from the pricing table for the appropriate volume tier.
 - **Adding drop material** -- check "This is drop" when adding leftover pieces back into inventory
-- **Physical count corrections** -- if a physical count doesn't match the system, adjust up or down
+- **Physical count corrections** -- if a physical count doesn't match the system, adjust up or down. The default $/sqft will match current WAC.
 - **Damage/waste** -- use a negative quantity to remove damaged sheets
 
-The right panel shows current inventory for the selected pattern and size, plus what the count will be after your adjustment.
+---
+
+## Pricing and Inventory Valuation
+
+### How pricing works
+
+Polilam prices materials by **price per square foot**, which varies based on three factors:
+
+1. **Pattern category** -- each pattern is either "Solid" or "Woodgrain" (set in Settings). Woodgrain patterns cost slightly more.
+2. **Thickness** -- thicker sheets cost more per square foot.
+3. **Volume tier** -- larger orders get better pricing:
+   - 1-49 sheets per design (highest price)
+   - 50-99 sheets per design (mid price)
+   - 100+ sheets per design (lowest price)
+
+The full pricing table is managed in **Settings > Sheet Pricing** and is pre-loaded with current Polilam rates.
+
+### Cost per sheet calculation
+
+When an order is placed, the system calculates cost per sheet automatically:
+
+```
+Cost Per Sheet = (Width × Length ÷ 144) × Price Per Sq Ft
+```
+
+For example, a 60"×144" sheet at $15.20/sqft:
+- Square footage = 60 × 144 ÷ 144 = 60 sqft
+- Cost per sheet = 60 × $15.20 = $912.00
+
+### Weighted Average Cost (WAC)
+
+The system tracks the **weighted average cost** per sheet for each pattern+size combination. WAC updates automatically as new inventory comes in:
+
+- When a shipment is received, the receipt's cost (from its order) is factored into the WAC
+- When inventory is adjusted with a cost, that cost is factored into the WAC
+- Drop material ($0) does not affect the WAC
+
+**Example:** You have 60 sheets at $636/sheet (WAC = $636). You receive 20 more at $690/sheet. New WAC = (60×636 + 20×690) ÷ 80 = $649.50/sheet.
+
+The Inventory Report uses WAC to calculate stock values.
 
 ---
 
 ## Drop Material
 
-"Drop" is leftover material from a job that's large enough to be worth saving. For example, if you pull a 60"x144" sheet for a job and the leftover 60"x72" piece is still usable, that leftover is drop.
+"Drop" is leftover material from a job that's large enough to be worth saving. For example, if you pull a 60"×144" sheet for a job and the leftover 60"×72" piece is still usable, that leftover is drop.
 
 **How drop works:**
 - When adding drop back into inventory, check **"This is drop"** on the Adjust Inventory form
@@ -126,7 +177,7 @@ The right panel shows current inventory for the selected pattern and size, plus 
 - Drop pulls are **excluded from the Removal Report** since Polilam was already paid for the full sheet
 - Drop-only inventory **does not trigger reorder warnings** -- there's nothing to reorder
 
-**Important:** A size like 60"x72" is not automatically considered drop. The same size could be drop (leftover) or purchased (if you buy that size directly). The "drop" checkbox on each transaction is what determines it.
+**Important:** A size like 60"×72" is not automatically considered drop. The same size could be drop (leftover) or purchased (if you buy that size directly). The "drop" checkbox on each transaction is what determines it.
 
 ---
 
@@ -143,9 +194,9 @@ A snapshot of current inventory across all patterns and sizes. Shows:
 - **Total Committed** -- all scheduled future pulls
 - **Projected Balance** -- stock after all commitments are fulfilled
 - **Re-Order?** -- shows a warning when the projected balance is at or below the reorder trigger (excludes drop-only items)
-- **Sheet Value** -- dollar value per sheet, based on the price per square foot for that thickness (set in Settings)
-- **Stock Value** -- total value of purchased stock on hand (drop = $0)
-- **On Order Value** -- total value of sheets on order
+- **Sheet Value** -- weighted average cost per sheet (WAC)
+- **Stock Value** -- total value of purchased stock on hand (purchased quantity × WAC; drop = $0)
+- **On Order Value** -- total value of sheets on order (each order's outstanding quantity × its cost per sheet)
 - **Grand Total** -- sum of all stock and on-order values
 
 Filter by pattern using the dropdown. Export to **CSV** or **PDF**.
@@ -178,13 +229,24 @@ The date range defaults to January 1st of this year through the furthest schedul
 
 ### Settings
 
-Manage the reference data that drives the dropdowns throughout the app:
+Manage the reference data that drives the dropdowns and pricing throughout the app:
 
-**Patterns** -- add, rename, or delete color/pattern names (e.g., Black 454, Espresso). You can also set the **Reorder Trigger** for each pattern -- this is the stock level at which the Dashboard and Inventory Report show a low-stock warning. Patterns with any transaction history cannot be deleted (they show "Has transactions").
+**Patterns** -- add, rename, or delete color/pattern names (e.g., Black 454, Espresso). Each pattern has:
+- **Category** -- "Solid" or "Woodgrain", which determines pricing
+- **Reorder Trigger** -- the stock level at which the Dashboard and Inventory Report show a low-stock warning
+
+Patterns with any transaction history cannot be deleted (they show "Has transactions").
 
 **Dimension Values** -- manage the available widths, lengths, and thicknesses that appear in dropdowns. Values with transaction history show "in use" and cannot be deleted.
 
-**Thickness Pricing** -- each thickness has a **Price per Square Foot** field. Enter the cost per square foot for each thickness (e.g., $1.25/sqft for 0.75" compact laminate). This drives the dollar value calculations in the Inventory Report. The price is the same for all patterns at a given thickness.
+**Sheet Pricing** -- the volume pricing table for all materials, organized by category (Solid/Woodgrain) and thickness. Each row has three price tiers ($/sqft):
+- **1-49 sheets** -- small order pricing
+- **50-99 sheets** -- mid-volume pricing
+- **100+ sheets** -- high-volume pricing
+
+The pricing table is pre-loaded with current Polilam rates. You can edit prices, add new rows for new thicknesses, or delete rows that are no longer needed.
+
+**Version** -- shown at the bottom of the Settings page. Use the build hash to verify that the deployed version matches what you expect.
 
 ---
 
@@ -194,5 +256,6 @@ Manage the reference data that drives the dropdowns throughout the app:
 - **The Dashboard is your daily starting point** -- check it for alerts and upcoming pulls.
 - **Use the Transactions report to audit** -- if numbers look wrong, the transaction log shows every entry that affected inventory.
 - **Mark drop correctly** -- always check "This is drop" when adding leftover material or pulling drop pieces. This keeps your removal report accurate for billing and your dollar values correct.
-- **Set thickness prices in Settings** -- without prices, the Inventory Report won't show dollar values.
-- **To start fresh** (e.g., new year or after testing), ask your IT team to reset the database. Your patterns and dimension values will be recreated automatically; only transaction history is cleared.
+- **Cost per sheet is auto-calculated on orders** -- the system looks up the right price tier based on your order quantity. You can override it on the Edit Order page if needed.
+- **Initial inventory needs a price** -- when adding starting inventory via Adjust Inventory, you'll be asked for the $/sqft. Use the appropriate tier from the pricing table.
+- **To start fresh** (e.g., new year or after testing), ask your IT team to reset the database. Your patterns, dimension values, and pricing table will be recreated automatically; only transaction history is cleared.

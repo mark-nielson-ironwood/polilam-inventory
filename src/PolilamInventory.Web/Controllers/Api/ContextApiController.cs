@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PolilamInventory.Web.Data;
+using PolilamInventory.Web.Services;
 
 namespace PolilamInventory.Web.Controllers.Api;
 
@@ -9,10 +10,12 @@ namespace PolilamInventory.Web.Controllers.Api;
 public class ContextApiController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly PricingService _pricingService;
 
-    public ContextApiController(AppDbContext db)
+    public ContextApiController(AppDbContext db, PricingService pricingService)
     {
         _db = db;
+        _pricingService = pricingService;
     }
 
     [HttpGet("pattern/{patternId:int}")]
@@ -81,5 +84,12 @@ public class ContextApiController : ControllerBase
             .ToList<object>();
 
         return Ok(new { inventory = inventoryRows, openOrders = orderRows });
+    }
+
+    [HttpGet("pricing")]
+    public async Task<IActionResult> GetPricing(int patternId, decimal width, decimal length, decimal thickness, int quantity)
+    {
+        var costPerSheet = await _pricingService.CalculateCostPerSheet(patternId, width, length, thickness, quantity);
+        return Ok(new { costPerSheet = costPerSheet?.ToString("F2") });
     }
 }

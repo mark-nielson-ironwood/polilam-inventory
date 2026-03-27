@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<PlannedClaim> PlannedClaims => Set<PlannedClaim>();
     public DbSet<ActualPull> ActualPulls => Set<ActualPull>();
     public DbSet<DimensionValue> DimensionValues => Set<DimensionValue>();
+    public DbSet<SheetPricing> SheetPricings => Set<SheetPricing>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

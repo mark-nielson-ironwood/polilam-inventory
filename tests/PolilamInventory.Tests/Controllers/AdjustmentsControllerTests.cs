@@ -13,7 +13,8 @@ public class AdjustmentsControllerTests
     {
         var sizeService = new SizeService(db.Context);
         var inventoryService = new InventoryService(db.Context);
-        return new AdjustmentsController(db.Context, sizeService, inventoryService);
+        var pricingService = new PricingService(db.Context);
+        return new AdjustmentsController(db.Context, sizeService, inventoryService, pricingService);
     }
 
     [Fact]

@@ -17,6 +17,7 @@
         <thead>
             <tr>
                 <th>Name</th>
+                <th>Category</th>
                 <th>Reorder Trigger</th>
                 <th></th>
             </tr>
@@ -27,6 +28,12 @@
                 <tr>
                     <td>
                         <input type="text" name="name" value="@p.Name" class="form-control form-control-sm" style="width:200px" form="edit-@p.Id" />
+                    </td>
+                    <td>
+                        <select name="category" class="form-select form-select-sm" style="width:130px" form="edit-@p.Id">
+                            <option value="Solid" selected="@(p.Category == "Solid")">Solid</option>
+                            <option value="Woodgrain" selected="@(p.Category == "Woodgrain")">Woodgrain</option>
+                        </select>
                     </td>
                     <td>
                         <input type="number" name="reorderTrigger" value="@p.ReorderTrigger" class="form-control form-control-sm" style="width:80px" min="0" form="edit-@p.Id" />
@@ -58,6 +65,10 @@
     <!-- Add Pattern -->
     <form asp-action="AddPattern" method="post" class="d-flex gap-2 align-items-center">
         <input type="text" name="name" placeholder="Pattern name" class="form-control form-control-sm" style="width:200px" required />
+        <select name="category" class="form-select form-select-sm" style="width:130px">
+            <option value="Solid">Solid</option>
+            <option value="Woodgrain">Woodgrain</option>
+        </select>
         <input type="number" name="reorderTrigger" value="5" placeholder="Reorder trigger" class="form-control form-control-sm" style="width:120px" min="0" />
         <button type="submit" class="btn btn-sm btn-submit-green">Add Pattern</button>
     </form>
@@ -68,7 +79,7 @@
     <h5 class="mb-3">Dimension Values</h5>
     <div class="row">
         <!-- Widths -->
-        <div class="col-md-3">
+        <div class="col-md-4">
             <h6 class="text-muted">Widths</h6>
             @foreach (var w in Model.Widths)
             {
@@ -78,7 +89,7 @@
                     {
                         <form asp-action="DeleteDimensionValue" method="post" class="d-inline">
                             <input type="hidden" name="id" value="@w.Id" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger btn-xs">×</button>
+                            <button type="submit" class="btn btn-sm btn-outline-danger btn-xs">&times;</button>
                         </form>
                     }
                     else
@@ -95,7 +106,7 @@
         </div>
 
         <!-- Lengths -->
-        <div class="col-md-3">
+        <div class="col-md-4">
             <h6 class="text-muted">Lengths</h6>
             @foreach (var l in Model.Lengths)
             {
@@ -105,7 +116,7 @@
                     {
                         <form asp-action="DeleteDimensionValue" method="post" class="d-inline">
                             <input type="hidden" name="id" value="@l.Id" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger btn-xs">×</button>
+                            <button type="submit" class="btn btn-sm btn-outline-danger btn-xs">&times;</button>
                         </form>
                     }
                     else
@@ -122,52 +133,25 @@
         </div>
 
         <!-- Thicknesses -->
-        <div class="col-md-6 ps-5">
+        <div class="col-md-4">
             <h6 class="text-muted">Thicknesses</h6>
-            <table class="table table-dark table-sm mb-2" style="width:auto">
-                <thead>
-                    <tr>
-                        <th>Thickness</th>
-                        <th>Type</th>
-                        <th>$/SqFt</th>
-                        <th></th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var t in Model.Thicknesses)
+            @foreach (var t in Model.Thicknesses)
+            {
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span>@t.Value" <span class="text-muted small">(@t.MaterialType)</span></span>
+                    @if (!t.HasTransactions)
                     {
-                        <tr class="align-middle">
-                            <td>@t.Value"</td>
-                            <td class="text-muted small">@t.MaterialType</td>
-                            <td>
-                                <form asp-action="UpdateThicknessPrice" method="post" class="d-flex align-items-center gap-1">
-                                    <input type="hidden" name="id" value="@t.Id" />
-                                    <span class="text-muted small">$</span>
-                                    <input type="number" name="pricePerSqFt" step="0.01" min="0"
-                                           value="@(t.PricePerSqFt?.ToString("F2") ?? "")"
-                                           placeholder="0.00"
-                                           class="form-control form-control-sm" style="width:80px" />
-                                    <button type="submit" class="btn btn-sm btn-submit-green btn-xs">$</button>
-                                </form>
-                            </td>
-                            <td>
-                                @if (!t.HasTransactions)
-                                {
-                                    <form asp-action="DeleteDimensionValue" method="post" class="d-inline">
-                                        <input type="hidden" name="id" value="@t.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger btn-xs">×</button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <span class="text-muted small">in use</span>
-                                }
-                            </td>
-                        </tr>
+                        <form asp-action="DeleteDimensionValue" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@t.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger btn-xs">&times;</button>
+                        </form>
                     }
-                </tbody>
-            </table>
+                    else
+                    {
+                        <span class="text-muted small">in use</span>
+                    }
+                </div>
+            }
             <form asp-action="AddDimensionValue" method="post" class="d-flex gap-1 mt-2">
                 <input type="hidden" name="type" value="Thickness" />
                 <input type="number" name="value" step="0.001" placeholder="e.g. 0.75" class="form-control form-control-sm" style="width:100px" required />
@@ -175,6 +159,68 @@
             </form>
         </div>
     </div>
+</div>
+
+<!-- Sheet Pricing Section -->
+<div class="card bg-card p-4 mb-4">
+    <h5 class="mb-3">Sheet Pricing</h5>
+    <table class="table table-dark table-sm mb-3">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Thickness</th>
+                <th>1-49 $/sqft</th>
+                <th>50-99 $/sqft</th>
+                <th>100+ $/sqft</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var sp in Model.SheetPricings)
+            {
+                <tr class="align-middle">
+                    <td>@sp.Category</td>
+                    <td>@sp.Thickness"</td>
+                    <td>
+                        <input type="number" name="tier1Price" step="0.01" min="0" value="@sp.Tier1Price.ToString("F2")"
+                               class="form-control form-control-sm" style="width:90px" form="pricing-@sp.Id" />
+                    </td>
+                    <td>
+                        <input type="number" name="tier2Price" step="0.01" min="0" value="@sp.Tier2Price.ToString("F2")"
+                               class="form-control form-control-sm" style="width:90px" form="pricing-@sp.Id" />
+                    </td>
+                    <td>
+                        <input type="number" name="tier3Price" step="0.01" min="0" value="@sp.Tier3Price.ToString("F2")"
+                               class="form-control form-control-sm" style="width:90px" form="pricing-@sp.Id" />
+                    </td>
+                    <td class="d-flex gap-2 align-items-center">
+                        <form id="pricing-@sp.Id" asp-action="UpdateSheetPricing" method="post">
+                            <input type="hidden" name="id" value="@sp.Id" />
+                            <button type="submit" class="btn btn-sm btn-submit-green">Save</button>
+                        </form>
+                        <form asp-action="DeleteSheetPricing" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@sp.Id" />
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    onclick="if(confirm('Delete this pricing row?')) { this.closest('form').submit(); }">&times;</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Add Sheet Pricing -->
+    <form asp-action="AddSheetPricing" method="post" class="d-flex gap-2 align-items-center flex-wrap">
+        <select name="category" class="form-select form-select-sm" style="width:130px">
+            <option value="Solid">Solid</option>
+            <option value="Woodgrain">Woodgrain</option>
+        </select>
+        <input type="number" name="thickness" step="0.001" placeholder="Thickness" class="form-control form-control-sm" style="width:100px" required />
+        <input type="number" name="tier1Price" step="0.01" min="0" placeholder="1-49 $/sqft" class="form-control form-control-sm" style="width:110px" required />
+        <input type="number" name="tier2Price" step="0.01" min="0" placeholder="50-99 $/sqft" class="form-control form-control-sm" style="width:110px" required />
+        <input type="number" name="tier3Price" step="0.01" min="0" placeholder="100+ $/sqft" class="form-control form-control-sm" style="width:110px" required />
+        <button type="submit" class="btn btn-sm btn-submit-green">Add Pricing</button>
+    </form>
 </div>
 
 <!-- App Version -->

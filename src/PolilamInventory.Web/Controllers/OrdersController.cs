@@ -11,11 +11,13 @@ public class OrdersController : Controller
 {
     private readonly AppDbContext _db;
     private readonly SizeService _sizeService;
+    private readonly PricingService _pricingService;
 
-    public OrdersController(AppDbContext db, SizeService sizeService)
+    public OrdersController(AppDbContext db, SizeService sizeService, PricingService pricingService)
     {
         _db = db;
         _sizeService = sizeService;
+        _pricingService = pricingService;
     }
 
     [HttpGet]
@@ -54,6 +56,9 @@ public class OrdersController : Controller
 
         var size = await _sizeService.FindOrCreate(model.Width, model.Length, model.Thickness);
 
+        var costPerSheet = await _pricingService.CalculateCostPerSheet(
+            model.PatternId, model.Width, model.Length, model.Thickness, model.QuantityOrdered);
+
         _db.Orders.Add(new Order
         {
             PatternId = model.PatternId,
@@ -62,7 +67,8 @@ public class OrdersController : Controller
             OrderDate = model.OrderDate,
             EtaDate = model.EtaDate,
             PoNumber = model.PoNumber?.Trim() ?? string.Empty,
-            Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim()
+            Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim(),
+            CostPerSheet = costPerSheet
         });
 
         await _db.SaveChangesAsync();
@@ -90,7 +96,8 @@ public class OrdersController : Controller
             PoNumber = order.PoNumber,
             QuantityOrdered = order.QuantityOrdered,
             EtaDate = order.EtaDate,
-            Note = order.Note
+            Note = order.Note,
+            CostPerSheet = order.CostPerSheet
         };
 
         return View(vm);
@@ -128,6 +135,7 @@ public class OrdersController : Controller
         order.QuantityOrdered = model.QuantityOrdered;
         order.EtaDate = model.EtaDate;
         order.Note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim();
+        order.CostPerSheet = model.CostPerSheet;
 
         await _db.SaveChangesAsync();
         TempData["Success"] = $"Order {order.PoNumber} updated.";

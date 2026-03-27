@@ -35,4 +35,6 @@ public class AdjustInventoryViewModel
     public string? Note { get; set; }
 
     public bool IsDrop { get; set; }
+
+    public decimal? CostPerSheet { get; set; }
 }

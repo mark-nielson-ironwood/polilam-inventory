@@ -10,7 +10,7 @@ namespace PolilamInventory.Tests.Controllers;
 public class ReportsControllerTests
 {
     private static ReportsController CreateController(TestDb db)
-        => new ReportsController(db.Context, new InventoryService(db.Context), new ReportExportService());
+        => new ReportsController(db.Context, new InventoryService(db.Context), new ReportExportService(), new PricingService(db.Context));
 
     [Fact]
     public async Task Inventory_CalculatesColumnsCorrectly()
@@ -330,21 +330,18 @@ public class ReportsControllerTests
         var pattern = db.CreatePattern("Espresso", reorderTrigger: 5);
         var size = db.CreateSize(width: 60, length: 144, thickness: 0.75m);
 
-        // Set up a thickness price: $10/sqft
-        db.Context.DimensionValues.Add(new DimensionValue { Type = "Thickness", Value = 0.75m, PricePerSqFt = 10m });
-        db.Context.SaveChanges();
-
-        // Normal adjustment: 8 sheets
+        // Normal adjustment: 8 sheets at $600/sheet
         db.Context.InventoryAdjustments.Add(new InventoryAdjustment
         {
             PatternId = pattern.Id,
             SizeId = size.Id,
             Quantity = 8,
             DateAdded = DateTime.Today,
-            IsDrop = false
+            IsDrop = false,
+            CostPerSheet = 600m
         });
 
-        // Drop adjustment: 2 sheets
+        // Drop adjustment: 2 sheets (no cost)
         db.Context.InventoryAdjustments.Add(new InventoryAdjustment
         {
             PatternId = pattern.Id,
@@ -368,7 +365,7 @@ public class ReportsControllerTests
         // InStock = 8 + 2 = 10 (total)
         Assert.Equal(10, row.InStock);
 
-        // SheetValue = (60 * 144 / 144) * 10 = 60 * 10 = $600
+        // WAC = (8 * 600) / 8 = $600
         Assert.Equal(600m, row.SheetValue);
 
         // StockValue should exclude drop: purchasedInStock = 10 - 2 = 8, value = 8 * 600 = $4800
