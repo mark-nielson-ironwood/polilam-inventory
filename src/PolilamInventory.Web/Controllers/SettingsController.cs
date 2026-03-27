@@ -246,8 +246,8 @@ public class SettingsController : Controller
         if (!string.IsNullOrEmpty(sha) && sha != "dev")
         {
             var shortSha = sha.Length > 7 ? sha[..7] : sha;
-            return $"1.0 (build {shortSha})";
+            return $"1.1 (build {shortSha})";
         }
-        return "1.0 (dev)";
+        return "1.1 (dev)";
     }
 }
